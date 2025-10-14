@@ -1,6 +1,7 @@
 # 🚀 GitHub Pages Deployment Fix Guide
 
 ## **Current Issue**
+
 Your GitHub Actions workflow failed with permission error: `Permission to JohnGabriel1998/Seven-Apparel.git denied to github-actions[bot]`
 
 ## **✅ SOLUTION IMPLEMENTED**
@@ -17,6 +18,7 @@ I've updated your GitHub Actions workflow to use the new GitHub Pages deployment
 ### **Step 2: Commit and Push the Updated Workflow**
 
 The workflow has been updated with:
+
 - ✅ Proper permissions for GitHub Pages
 - ✅ Modern GitHub Pages deployment action
 - ✅ Automatic copying of built files to root directory
@@ -25,6 +27,7 @@ The workflow has been updated with:
 ### **Step 3: Test the Deployment**
 
 After you commit these changes and push them, the workflow will:
+
 1. Build your React app in `client/`
 2. Copy the built files to the root directory
 3. Deploy directly to GitHub Pages
@@ -33,6 +36,7 @@ After you commit these changes and push them, the workflow will:
 ## **What Changed in the Workflow**
 
 ### **Before:**
+
 ```yaml
 - name: Deploy to GitHub Pages
   uses: peaceiris/actions-gh-pages@v3
@@ -42,6 +46,7 @@ After you commit these changes and push them, the workflow will:
 ```
 
 ### **After:**
+
 ```yaml
 permissions:
   contents: read
@@ -52,12 +57,12 @@ permissions:
 
 - name: Setup Pages
   uses: actions/configure-pages@v4
-  
+
 - name: Upload artifact
   uses: actions/upload-pages-artifact@v3
   with:
     path: '.'
-    
+
 - name: Deploy to GitHub Pages
   uses: actions/deploy-pages@v4
 ```
@@ -79,11 +84,13 @@ permissions:
 ## **Troubleshooting**
 
 **If the workflow still fails:**
+
 1. Ensure Pages source is set to "GitHub Actions" (not "Deploy from a branch")
 2. Check that GitHub Pages is enabled in your repository settings
 3. Verify your custom domain DNS settings are correct
 
 **DNS Configuration Reminder:**
+
 - A records: `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
 - CNAME record: `www` → `johngabriel1998.github.io`
 
