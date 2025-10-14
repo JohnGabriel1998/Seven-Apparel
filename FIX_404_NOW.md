@@ -1,12 +1,14 @@
 # 🎯 COMPLETE GITHUB PAGES FIX - STEP BY STEP
 
 ## **🚨 CURRENT PROBLEM**
+
 You're getting **404 error** when visiting `johngabriel1998.github.io`
 **Root Cause**: GitHub Pages source is not properly configured
 
 ## **✅ STEP-BY-STEP SOLUTION**
 
-### **STEP 1: CRITICAL - Set GitHub Pages Source** 
+### **STEP 1: CRITICAL - Set GitHub Pages Source**
+
 **THIS IS THE MOST IMPORTANT STEP**
 
 1. **Go to**: https://github.com/JohnGabriel1998/Seven-Apparel/settings/pages
@@ -15,11 +17,13 @@ You're getting **404 error** when visiting `johngabriel1998.github.io`
 4. **Click Save**
 
 ### **STEP 2: Verify Repository is Public**
+
 1. Go to: https://github.com/JohnGabriel1998/Seven-Apparel/settings
 2. Scroll down to "Danger Zone"
 3. Ensure repository visibility is **"Public"** (not Private)
 
 ### **STEP 3: Trigger New Deployment**
+
 After changing the source, push a small change to trigger the workflow:
 
 ```powershell
@@ -31,12 +35,15 @@ git push origin main
 ```
 
 ### **STEP 4: Monitor Deployment**
+
 1. Go to: https://github.com/JohnGabriel1998/Seven-Apparel/actions
 2. Wait for "Deploy to GitHub Pages" workflow to complete
 3. Look for green checkmark ✅
 
 ### **STEP 5: Test Your Site**
+
 Once deployment completes:
+
 - Visit: `https://johngabriel1998.github.io`
 - Should show your Seven Apparel website (not 404)
 
@@ -51,6 +58,7 @@ Once deployment completes:
 ✅ **Wait Time**: Allow 5-10 minutes after successful deployment
 
 ## **📋 CURRENT STATUS**
+
 - ✅ **Website Files**: Exist in root directory
 - ✅ **GitHub Actions Workflow**: Properly configured
 - ✅ **Permissions**: Correct for Pages deployment
@@ -58,7 +66,9 @@ Once deployment completes:
 - ❓ **Repository**: Need to verify it's public
 
 ## **🎯 EXPECTED RESULT**
+
 After Step 1 (setting source to GitHub Actions):
+
 1. New deployment will trigger automatically
 2. Your site will be live at `johngabriel1998.github.io`
 3. Then you can work on DNS for custom domain
