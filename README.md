@@ -1,113 +1,160 @@
-# 🛍️ Seven Apparel – Clothing E-Commerce Website
+# Seven Apparel - Premium E-commerce Platform
 
-A modern and stylish clothing e-commerce platform built with the MERN stack.
+A modern, responsive e-commerce platform built with React, TypeScript, and Node.js featuring premium glassmorphism design and advanced animations.
+
+## 🌟 Features
+
+- **Premium Design**: Modern glassmorphism UI with advanced animations
+- **Full E-commerce**: Complete shopping cart, checkout, and order management
+- **Admin Dashboard**: Comprehensive admin panel for product and order management
+- **User Authentication**: Secure login/register system with role-based access
+- **Responsive Design**: Optimized for all devices (mobile, tablet, desktop)
+- **Payment Integration**: Secure payment processing
+- **Image Upload**: Cloudinary integration for product images
+- **Analytics**: Built-in analytics and reporting
+- **Multi-region Support**: Philippine regions and zip codes
 
 ## 🚀 Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
-- **Backend**: Node.js + Express + MongoDB
-- **Authentication**: JWT + OAuth (Google)
-- **Payment**: Stripe Integration
-- **Storage**: Cloudinary (for images)
+### Frontend
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **Tailwind CSS** for styling
+- **Zustand** for state management
+- **React Router** for navigation
+- **Heroicons** for icons
 
-## 📦 Features
+### Backend
+- **Node.js** with Express
+- **MongoDB** with Mongoose
+- **JWT** for authentication
+- **Cloudinary** for image storage
+- **Passport.js** for authentication strategies
 
-### User Features
-- 🛍️ Product catalog with advanced filters
-- 👕 Detailed product pages with reviews
-- 🛒 Shopping cart with coupon support
-- 💳 Secure checkout with multiple payment options
-- 👤 User accounts with order history
-- ❤️ Wishlist functionality
-- 🌈 Style quiz for personalized recommendations
-- 👗 Virtual try-on feature (Optional)
-
-### Admin Features
-- 📊 Analytics dashboard
-- 📦 Product management
-- 👥 User management
-- 🎫 Promo code management
-- 📋 Order management
-
-### Additional Features
-- 🌙 Dark/Light mode
-- 🌐 Multilanguage support
-- 📱 Mobile-first responsive design
-- 💬 Live chat support
-- 📝 Blog/Lookbook section
-
-## 🛠️ Installation
+## 📦 Installation
 
 ### Prerequisites
 - Node.js (v18 or higher)
 - MongoDB
-- npm or yarn
+- Cloudinary account (for image uploads)
 
-### Backend Setup
+### Setup
 
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/JohnGabriel1998/Seven-Apparel.git
+   cd Seven-Apparel
+   ```
+
+2. **Install dependencies**
+   ```bash
+   # Install server dependencies
+   cd server
+   npm install
+   
+   # Install client dependencies
+   cd ../client
+   npm install
+   ```
+
+3. **Environment Setup**
+   
+   Create `.env` files in both `server` and `client` directories:
+   
+   **server/.env**
+   ```env
+   NODE_ENV=development
+   PORT=5000
+   MONGODB_URI=mongodb://localhost:27017/seven-apparel
+   JWT_SECRET=your-jwt-secret
+   CLOUDINARY_CLOUD_NAME=your-cloudinary-name
+   CLOUDINARY_API_KEY=your-cloudinary-key
+   CLOUDINARY_API_SECRET=your-cloudinary-secret
+   ```
+   
+   **client/.env**
+   ```env
+   VITE_API_URL=http://localhost:5000
+   ```
+
+4. **Start the application**
+   ```bash
+   # Start the server (from server directory)
+   npm run dev
+   
+   # Start the client (from client directory)
+   npm run dev
+   ```
+
+## 🎨 Design Features
+
+- **Glassmorphism Effects**: Modern translucent design elements
+- **Advanced Animations**: Smooth transitions and micro-interactions
+- **Premium Typography**: Gradient text effects and modern fonts
+- **Responsive Layout**: Mobile-first design approach
+- **Dark Mode Support**: Built-in dark/light theme switching
+
+## 📱 Pages & Features
+
+### Customer Pages
+- **Home**: Hero carousel with featured products
+- **Products**: Product listing with filters and search
+- **Product Detail**: Detailed product view with image gallery
+- **Cart**: Shopping cart with quantity management
+- **Checkout**: Secure checkout process
+- **Profile**: User account management
+- **Orders**: Order history and tracking
+- **Wishlist**: Save favorite products
+
+### Admin Pages
+- **Dashboard**: Analytics and overview
+- **Products**: Add, edit, and manage products
+- **Orders**: Order management and fulfillment
+- **Users**: User account management
+- **Analytics**: Sales and performance metrics
+- **Settings**: System configuration
+
+## 🔧 Available Scripts
+
+### Server
 ```bash
-cd server
-npm install
-cp .env.example .env
-# Configure your .env file
-npm run dev
+npm run dev          # Start development server
+npm start           # Start production server
+npm run seed        # Seed database with sample data
 ```
 
-### Frontend Setup
-
+### Client
 ```bash
-cd client
-npm install
-npm run dev
+npm run dev         # Start development server
+npm run build       # Build for production
+npm run preview     # Preview production build
+npm run lint        # Run ESLint
 ```
 
-## 🔧 Environment Variables
+## 🌐 Deployment
 
-### Server (.env)
-```
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRE=7d
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-STRIPE_SECRET_KEY=your_stripe_secret_key
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email
-EMAIL_PASS=your_email_password
-CLIENT_URL=http://localhost:5173
-```
+The project is configured for GitHub Pages deployment with GitHub Actions. The workflow automatically builds and deploys the React frontend when changes are pushed to the main branch.
 
-### Client (.env)
-```
-VITE_API_URL=http://localhost:5000/api
-VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key
-VITE_GOOGLE_CLIENT_ID=your_google_client_id
-```
-
-## 📝 API Documentation
-
-API documentation is available at `/api/docs` when the server is running.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Manual Deployment
+1. Build the client: `cd client && npm run build`
+2. Deploy the `dist` folder to your hosting service
 
 ## 📄 License
 
 This project is licensed under the MIT License.
 
-## 👥 Authors
+## 🤝 Contributing
 
-Seven Apparel Team
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Commit changes: `git commit -m 'Add feature'`
+4. Push to branch: `git push origin feature-name`
+5. Submit a pull request
 
-## 🙏 Acknowledgments
+## 📞 Support
 
-- React Team
-- Tailwind CSS
-- MongoDB
-- Express.js
+For support or questions, please open an issue in the GitHub repository.
+
+---
+
+**Seven Apparel** - Redefining fashion with modern designs, premium quality, and sustainable practices. Dress confidently, live authentically. ✨
