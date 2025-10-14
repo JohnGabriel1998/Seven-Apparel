@@ -1,0 +1,13 @@
+{
+  "name": "seven-apparel",
+  "version": "1.0.0",
+  "description": "Seven Apparel E-commerce Platform",
+  "scripts": {
+    "build": "cd client && npm ci && npm run build",
+    "dev": "cd client && npm run dev",
+    "install-client": "cd client && npm ci"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
