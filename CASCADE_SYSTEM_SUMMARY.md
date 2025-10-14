@@ -171,12 +171,18 @@ const handleAddressChange = (address: {
 // 4. Replace ZIP code section in form
 <CascadingAddressSelect
   onAddressChange={handleAddressChange}
+```
+
+```tsx
   initialValues={{
     region: shippingInfo.region,
     province: shippingInfo.province,
     city: shippingInfo.city,
     barangay: shippingInfo.barangay,
   }}
+```
+
+```tsx
 />;
 
 // 5. Update validation

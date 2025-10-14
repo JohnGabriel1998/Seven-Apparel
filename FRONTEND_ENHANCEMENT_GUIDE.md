@@ -401,6 +401,9 @@ Desktop: 3-4 columns
 
 ```tsx
 <ProductCard
+```
+
+```tsx
   product={{
     _id: "123",
     name: "Product Name",
@@ -412,6 +415,9 @@ Desktop: 3-4 columns
     totalStock: 10,
     variants: [{ color: "Blue", size: "M", stock: 5 }],
   }}
+```
+
+```tsx
   className="custom-class" // Optional additional classes
 />
 ```
