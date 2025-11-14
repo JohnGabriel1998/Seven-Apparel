@@ -7,7 +7,8 @@ const {
   updateProduct,
   deleteProduct,
   getFeaturedProducts,
-  getRecommendedProducts
+  getRecommendedProducts,
+  getLowStockProducts
 } = require('../controllers/productController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -17,6 +18,7 @@ router.route('/')
 
 router.get('/featured', getFeaturedProducts);
 router.get('/recommended', getRecommendedProducts);
+router.get('/admin/low-stock', protect, authorize('admin'), getLowStockProducts);
 
 router.route('/:id')
   .get(getProduct)

@@ -6,106 +6,152 @@ import {
   TrashIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
+import api from "../../utils/api";
+import BlogPostForm from "../../components/admin/BlogPostForm";
+
+type PublishStatus = "draft" | "published";
 
 interface BlogPost {
   _id: string;
   title: string;
   slug: string;
   excerpt: string;
-  author: {
-    name: string;
-    email: string;
+  author?: {
+    name?: string;
+    avatar?: string;
   };
-  category: string;
+  category?: string;
   tags: string[];
-  published: boolean;
+  status: PublishStatus;
   publishedAt?: string;
-  views: number;
+  viewCount: number;
   createdAt: string;
   updatedAt: string;
+  featuredImage?: {
+    url?: string;
+    alt?: string;
+  };
 }
 
 const AdminBlog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"" | PublishStatus>("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | undefined>();
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; postId: string | null }>({
+    show: false,
+    postId: null,
+  });
 
   useEffect(() => {
     fetchPosts();
   }, []);
 
   const fetchPosts = async () => {
+    setLoading(true);
+    setError("");
     try {
-      // Mock data for now - you'll need to create a blog API endpoint
-      const mockPosts: BlogPost[] = [
-        {
-          _id: "1",
-          title: "Spring Fashion Trends 2024",
-          slug: "spring-fashion-trends-2024",
-          excerpt:
-            "Discover the hottest spring trends that will dominate the season.",
-          author: {
-            name: "Admin User",
-            email: "admin@sevenapparel.com",
-          },
-          category: "Trends",
-          tags: ["spring", "fashion", "trends"],
-          published: true,
-          publishedAt: "2024-01-15",
-          views: 1250,
-          createdAt: "2024-01-10",
-          updatedAt: "2024-01-15",
+      const response = await api.get("/blog", {
+        params: {
+          limit: 100,
+          includeAll: true, // Get both published and draft posts for admin
         },
-        {
-          _id: "2",
-          title: "How to Style Your Summer Wardrobe",
-          slug: "how-to-style-summer-wardrobe",
-          excerpt:
-            "Essential tips for creating versatile summer outfits that keep you cool.",
-          author: {
-            name: "Admin User",
-            email: "admin@sevenapparel.com",
-          },
-          category: "Style Guide",
-          tags: ["summer", "styling", "tips"],
-          published: false,
-          views: 0,
-          createdAt: "2024-02-01",
-          updatedAt: "2024-02-01",
-        },
-      ];
+      });
 
-      setPosts(mockPosts);
-      setLoading(false);
+      const normalized: BlogPost[] = (response.data?.data ?? []).map(
+        (post: any) => ({
+          _id: post._id,
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt,
+          author: post.author,
+          category: post.category,
+          tags: Array.isArray(post.tags) ? post.tags : [],
+          status: (post.status ?? "published") as PublishStatus,
+          publishedAt: post.publishedAt,
+          viewCount: post.viewCount ?? 0,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          featuredImage: post.featuredImage,
+        })
+      );
+
+      setPosts(normalized);
     } catch (error) {
+      console.error(error);
+      setError("Failed to load blog posts");
       toast.error("Failed to load blog posts");
+    } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (_id: string) => {
-    if (!window.confirm("Are you sure you want to delete this post?")) {
-      return;
-    }
+    setDeleteConfirm({ show: true, postId: _id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.postId) return;
 
     try {
-      // await api.delete(`/blog/${_id}`);
+      await api.delete(`/blog/${deleteConfirm.postId}`);
       toast.success("Post deleted successfully");
       fetchPosts();
+      setDeleteConfirm({ show: false, postId: null });
     } catch (error) {
+      console.error(error);
       toast.error("Failed to delete post");
     }
   };
 
-  const togglePublish = async (_id: string, currentStatus: boolean) => {
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, postId: null });
+  };
+
+  const handleCreatePost = () => {
+    setEditingPostId(undefined);
+    setIsFormOpen(true);
+  };
+
+  const handleEditPost = (_id: string) => {
+    setEditingPostId(_id);
+    setIsFormOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setEditingPostId(undefined);
+  };
+
+  const handleFormSuccess = () => {
+    fetchPosts();
+  };
+
+  const togglePublish = async (_id: string, currentStatus: PublishStatus) => {
+    const nextStatus: PublishStatus =
+      currentStatus === "published" ? "draft" : "published";
+
     try {
-      // await api.patch(`/blog/${_id}/publish`, { published: !currentStatus });
+      const payload: Record<string, unknown> = {
+        status: nextStatus,
+      };
+
+      if (nextStatus === "published") {
+        payload.publishedAt = new Date().toISOString();
+      }
+
+      await api.put(`/blog/${_id}`, payload);
       toast.success(
-        `Post ${!currentStatus ? "published" : "unpublished"} successfully`
+        nextStatus === "published"
+          ? "Post published successfully"
+          : "Post moved to drafts"
       );
       fetchPosts();
     } catch (error) {
+      console.error(error);
       toast.error("Failed to update post status");
     }
   };
@@ -114,10 +160,7 @@ const AdminBlog = () => {
     const matchesSearch = post.title
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      !filterStatus ||
-      (filterStatus === "published" && post.published) ||
-      (filterStatus === "draft" && !post.published);
+    const matchesStatus = !filterStatus || post.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -136,7 +179,7 @@ const AdminBlog = () => {
           Blog Management
         </h1>
         <button
-          onClick={() => toast.success("Coming soon: Add new blog post")}
+          onClick={handleCreatePost}
           className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
           <PlusIcon className="w-5 h-5 mr-2" />
@@ -165,7 +208,9 @@ const AdminBlog = () => {
             </label>
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) =>
+                setFilterStatus(e.target.value as "" | PublishStatus)
+              }
               className="input"
             >
               <option value="">All Posts</option>
@@ -175,6 +220,12 @@ const AdminBlog = () => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Blog Posts Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -226,25 +277,25 @@ const AdminBlog = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                    {post.category}
+                    {post.category || "Uncategorized"}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-gray-900 dark:text-white">
                     <EyeIcon className="w-4 h-4 mr-1 text-gray-400" />
-                    {post.views}
+                    {post.viewCount}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
-                    onClick={() => togglePublish(post._id, post.published)}
+                    onClick={() => togglePublish(post._id, post.status)}
                     className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      post.published
+                      post.status === "published"
                         ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                         : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                     }`}
                   >
-                    {post.published ? "Published" : "Draft"}
+                    {post.status === "published" ? "Published" : "Draft"}
                   </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -252,14 +303,16 @@ const AdminBlog = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
-                    onClick={() => toast.success("Coming soon: View post")}
+                    onClick={() => window.open(`/blog/${post.slug}`, "_blank")}
                     className="text-blue-600 hover:text-blue-900 dark:text-blue-400 mr-3"
+                    title="View post"
                   >
                     <EyeIcon className="w-5 h-5 inline" />
                   </button>
                   <button
-                    onClick={() => toast.success("Coming soon: Edit post")}
+                    onClick={() => handleEditPost(post._id)}
                     className="text-primary-600 hover:text-primary-900 dark:text-primary-400 mr-3"
+                    title="Edit post"
                   >
                     <PencilIcon className="w-5 h-5 inline" />
                   </button>
@@ -280,6 +333,47 @@ const AdminBlog = () => {
           </div>
         )}
       </div>
+
+      {/* Blog Post Form Modal */}
+      <BlogPostForm
+        isOpen={isFormOpen}
+        onClose={handleFormClose}
+        onSuccess={handleFormSuccess}
+        postId={editingPostId}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <TrashIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">
+                Delete Post
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+                Are you sure you want to delete this post? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -82,6 +82,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        // Set a flag to indicate intentional logout (prevents unwanted toasts)
+        localStorage.setItem('isLoggingOut', 'true');
+        
         localStorage.removeItem('token');
         
         // CRITICAL FIX: Clear cart data to prevent cross-user data leak
@@ -99,6 +102,11 @@ export const useAuthStore = create<AuthState>()(
         }
         
         toast.success('Logged out successfully');
+        
+        // Clear the logout flag after a short delay
+        setTimeout(() => {
+          localStorage.removeItem('isLoggingOut');
+        }, 1000);
       },
 
       updateUser: (user: User) => {

@@ -6,8 +6,6 @@ import {
   MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
-  SparklesIcon,
-  StarIcon,
 } from "@heroicons/react/24/outline";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
@@ -20,6 +18,32 @@ export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<number>();
+
+  const getAvatarUrl = () => {
+    if (user?.avatar && user.avatar !== "https://via.placeholder.com/150") {
+      // If it's a full URL, use it directly
+      if (user.avatar.startsWith("http")) {
+        return user.avatar;
+      }
+      // If it's a relative path, prepend the server base URL (without /api)
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const baseUrl = apiUrl.replace("/api", "");
+      return `${baseUrl}${user.avatar}`;
+    }
+    return null;
+  };
+
+  const getInitials = () => {
+    if (user?.name) {
+      return user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return "U";
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -158,138 +182,112 @@ export const Navbar = () => {
         }
       `}</style>
 
-      <nav className="glass-effect premium-shadow sticky top-0 z-50 border-b border-white/20 dark:border-gray-700/30">
+      <nav className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-24">
-            {/* Logo - Premium Design */}
-            <Link to="/" className="relative group flex items-center space-x-4">
-              {/* Animated Number "7" with Enhanced Effects */}
+          <div className="flex items-center justify-between h-20">
+            {/* Logo - Elegant & Professional */}
+            <Link to="/" className="relative group flex items-center space-x-3">
+              {/* Minimalist Number "7" */}
               <div className="relative">
-                <div className="absolute -inset-2 bg-gradient-to-r from-primary-500 via-purple-500 to-primary-700 rounded-2xl blur-lg opacity-30 group-hover:opacity-60 transition-all duration-500 animate-pulse-glow"></div>
-                <div className="relative bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
-                  <span className="text-6xl font-black bg-gradient-to-br from-primary-600 via-purple-600 to-primary-800 bg-clip-text text-transparent gradient-animate">
+                <div className="absolute -inset-1 bg-gradient-to-br from-primary-600/20 to-primary-800/20 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                <div className="relative bg-white dark:bg-gray-900 rounded-xl p-2 border border-gray-200 dark:border-gray-700 shadow-sm group-hover:shadow-md transition-all duration-300">
+                  <span className="text-4xl font-bold text-primary-600 dark:text-primary-400">
                     7
                   </span>
-                  {/* Sparkle Effects */}
-                  <SparklesIcon className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400 animate-sparkle" />
-                  <StarIcon className="absolute -bottom-1 -left-1 w-3 h-3 text-primary-400 animate-sparkle" style={{ animationDelay: "1s" }} />
                 </div>
               </div>
 
-              {/* Brand Name with Premium Styling */}
+              {/* Brand Name - Refined Typography */}
               <div className="flex flex-col">
-                <span className="text-3xl font-black tracking-tight bg-gradient-to-r from-gray-900 via-primary-700 to-gray-900 dark:from-white dark:via-primary-300 dark:to-white bg-clip-text text-transparent shimmer-effect">
+                <span className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                   SEVEN
                 </span>
-                <span className="text-sm font-bold tracking-[0.3em] text-primary-600 dark:text-primary-400 uppercase -mt-1 bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
+                <span className="text-xs font-semibold tracking-[0.25em] text-gray-600 dark:text-gray-400 uppercase -mt-0.5">
                   APPAREL
                 </span>
               </div>
-
-              {/* Enhanced Decorative Elements */}
-              <div className="absolute -top-3 -right-3 w-4 h-4 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full animate-float opacity-70 shadow-lg"></div>
-              <div
-                className="absolute -bottom-2 -left-2 w-3 h-3 bg-gradient-to-br from-purple-500 to-primary-600 rounded-full animate-float opacity-50 shadow-lg"
-                style={{ animationDelay: "1.5s" }}
-              ></div>
-              <div
-                className="absolute top-1/2 -right-6 w-2 h-2 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-float opacity-60"
-                style={{ animationDelay: "0.8s" }}
-              ></div>
             </Link>
 
-            {/* Navigation Links - Premium Desktop */}
-            <div className="hidden lg:flex items-center space-x-2">
+            {/* Navigation Links - Clean & Professional */}
+            <div className="hidden lg:flex items-center space-x-1">
               <Link
                 to="/products?gender=women"
-                className="px-6 py-3 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:text-white dark:hover:text-white transition-all duration-300 relative group overflow-hidden glass-effect hover:shadow-lg"
+                className="px-5 py-2.5 font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-300 relative group"
               >
-                <span className="relative z-10">Women</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-pink-500 to-rose-500 group-hover:w-full transition-all duration-500"></div>
+                Women
+                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 group-hover:w-full transition-all duration-300"></div>
               </Link>
               <Link
                 to="/products?gender=men"
-                className="px-6 py-3 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:text-white dark:hover:text-white transition-all duration-300 relative group overflow-hidden glass-effect hover:shadow-lg"
+                className="px-5 py-2.5 font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-300 relative group"
               >
-                <span className="relative z-10">Men</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 group-hover:w-full transition-all duration-500"></div>
+                Men
+                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 group-hover:w-full transition-all duration-300"></div>
               </Link>
               <Link
                 to="/products?tags=new-arrival"
-                className="px-6 py-3 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:text-white dark:hover:text-white transition-all duration-300 relative group overflow-hidden glass-effect hover:shadow-lg"
+                className="px-5 py-2.5 font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-300 relative group"
               >
-                <span className="relative z-10">New Arrivals</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 group-hover:w-full transition-all duration-500"></div>
+                New Arrivals
+                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 group-hover:w-full transition-all duration-300"></div>
               </Link>
               <Link
                 to="/products?tags=sale"
-                className="px-6 py-3 rounded-2xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 transition-all duration-300 shadow-xl hover:shadow-2xl relative overflow-hidden group animate-pulse-glow"
+                className="px-5 py-2.5 font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-all duration-300 relative group"
               >
-                <span className="relative z-10 flex items-center space-x-2">
-                  <span>Sale</span>
-                  <span className="text-lg animate-bounce">🔥</span>
-                </span>
-                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                Sale
+                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-600 dark:bg-red-400 group-hover:w-full transition-all duration-300"></div>
               </Link>
               <Link
                 to="/blog"
-                className="px-6 py-3 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:text-white dark:hover:text-white transition-all duration-300 relative group overflow-hidden glass-effect hover:shadow-lg"
+                className="px-5 py-2.5 font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-300 relative group"
               >
-                <span className="relative z-10">Blog</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-violet-500 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-purple-500 to-violet-500 group-hover:w-full transition-all duration-500"></div>
+                Blog
+                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-600 dark:bg-primary-400 group-hover:w-full transition-all duration-300"></div>
               </Link>
             </div>
 
-            {/* Right Icons - Premium Design */}
-            <div className="flex items-center space-x-3">
+            {/* Right Icons - Sophisticated Design */}
+            <div className="flex items-center space-x-2">
               {/* Search Button */}
-              <button className="p-3 glass-effect rounded-2xl transition-all duration-300 hover:scale-110 group hover:shadow-lg">
-                <MagnifyingGlassIcon className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-all duration-300" />
+              <button className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 group">
+                <MagnifyingGlassIcon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-300" />
               </button>
 
               {/* Wishlist */}
               <Link
                 to="/wishlist"
-                className="p-3 glass-effect rounded-2xl transition-all duration-300 hover:scale-110 group relative hover:shadow-lg"
+                className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 group relative"
               >
-                <HeartIcon className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-red-500 transition-all duration-300" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 animate-ping"></div>
+                <HeartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-300" />
               </Link>
 
-              {/* Cart with Enhanced Animation */}
+              {/* Cart - Clean Design */}
               <div className="relative group">
                 <Link
                   to="/cart"
-                  className="p-3 glass-effect rounded-2xl transition-all duration-300 relative block animate-bounce-cart hover:shadow-lg"
+                  className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 relative block"
                 >
-                  <ShoppingCartIcon className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-all duration-300" />
+                  <ShoppingCartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-300" />
                   {isAuthenticated && itemCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-gradient-to-r from-primary-600 via-purple-600 to-primary-700 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shadow-xl animate-pulse-glow border-2 border-white">
+                    <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
                       {itemCount}
                     </span>
                   )}
                 </Link>
 
-                {/* Enhanced Tooltip */}
+                {/* Refined Tooltip */}
                 {!isAuthenticated && (
-                  <div className="absolute right-0 top-full mt-3 hidden group-hover:block z-50 pointer-events-none">
-                    <div className="glass-effect text-white text-sm rounded-2xl py-4 px-6 whitespace-nowrap shadow-2xl border border-white/20 backdrop-blur-xl">
-                      <p className="font-bold text-lg">👋 Just window shopping?</p>
-                      <p className="text-sm text-gray-200 mt-2">
-                        Sign in to save your favorites
-                      </p>
-                      <div className="absolute -top-2 right-6 w-4 h-4 glass-effect transform rotate-45 border-l border-t border-white/20"></div>
+                  <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 pointer-events-none">
+                    <div className="bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg py-2 px-4 whitespace-nowrap shadow-lg">
+                      Sign in to save items
+                      <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 dark:bg-gray-800 transform rotate-45"></div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* User Menu - Premium Design */}
+              {/* User Menu - Professional Design */}
               {isAuthenticated ? (
                 <div
                   className="relative"
@@ -298,64 +296,119 @@ export const Navbar = () => {
                   onMouseLeave={handleMouseLeave}
                 >
                   <button
-                    className="w-12 h-12 flex items-center justify-center glass-effect rounded-2xl transition-all duration-300 hover:scale-110 hover:shadow-lg ring-2 ring-transparent hover:ring-primary-200 dark:hover:ring-primary-800"
+                    className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 hover:ring-2 hover:ring-primary-200 dark:hover:ring-primary-800 overflow-hidden"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   >
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-xl ${
-                        user?.role === "admin"
-                          ? "bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 animate-pulse-glow"
-                          : "bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800"
-                      }`}
-                    >
-                      {user?.role === "admin"
-                        ? "A"
-                        : user?.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
+                    {getAvatarUrl() ? (
+                      <img
+                        src={getAvatarUrl() || undefined}
+                        alt={user?.name || "Profile"}
+                        className="w-full h-full object-cover rounded-full"
+                        onError={(e) => {
+                          // Fallback to initials if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement("div");
+                            fallback.className = `w-full h-full rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                              user?.role === "admin"
+                                ? "bg-gray-900 dark:bg-gray-700"
+                                : "bg-primary-600 dark:bg-primary-700"
+                            }`;
+                            fallback.textContent = getInitials();
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className={`w-full h-full rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                          user?.role === "admin"
+                            ? "bg-gray-900 dark:bg-gray-700"
+                            : "bg-primary-600 dark:bg-primary-700"
+                        }`}
+                      >
+                        {getInitials()}
+                      </div>
+                    )}
                   </button>
                   {isDropdownOpen && (
                     <div
-                      className="absolute right-0 mt-4 w-64 glass-effect rounded-3xl shadow-2xl py-3 border border-white/20 z-50 backdrop-blur-xl"
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 border border-gray-200 dark:border-gray-700 z-50"
                       onMouseEnter={handleDropdownMouseEnter}
                       onMouseLeave={handleDropdownMouseLeave}
                     >
-                      <div className="px-6 py-4 border-b border-white/20">
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {user?.name}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {user?.email}
-                        </p>
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold text-sm overflow-hidden flex-shrink-0">
+                            {getAvatarUrl() ? (
+                              <img
+                                src={getAvatarUrl() || undefined}
+                                alt={user?.name || "User"}
+                                className="w-full h-full object-cover rounded-full"
+                                onError={(e) => {
+                                  // Fallback to initials if image fails to load
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    const fallback = document.createElement("div");
+                                    fallback.className = `w-full h-full rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                                      user?.role === "admin"
+                                        ? "bg-gray-900 dark:bg-gray-700"
+                                        : "bg-primary-600 dark:bg-primary-700"
+                                    }`;
+                                    fallback.textContent = getInitials();
+                                    parent.appendChild(fallback);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span>{getInitials()}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                              {user?.name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {user?.email}
+                            </p>
+                          </div>
+                        </div>
                         {user?.role === "admin" && (
-                          <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-bold">
-                            👑 Admin
+                          <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium">
+                            Admin
                           </div>
                         )}
                       </div>
                       <Link
                         to="/profile"
-                        className="block px-6 py-3 hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-300 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 text-sm font-semibold rounded-xl mx-2 my-1"
+                        className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-700 dark:text-gray-300 text-sm"
                         onClick={() => setIsDropdownOpen(false)}
                       >
-                        👤 Profile
+                        Profile
                       </Link>
-                      <Link
-                        to="/orders"
-                        className="block px-6 py-3 hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-300 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 text-sm font-semibold rounded-xl mx-2 my-1"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        📦 Orders
-                      </Link>
+                      {user?.role !== "admin" && (
+                        <Link
+                          to="/orders"
+                          className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-700 dark:text-gray-300 text-sm"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Orders
+                        </Link>
+                      )}
                       {user?.role === "admin" && (
                         <Link
                           to="/admin"
-                          className="block px-6 py-3 hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-300 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 text-sm font-semibold rounded-xl mx-2 my-1"
+                          className="block px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-700 dark:text-gray-300 text-sm"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          ⚙️ Admin Dashboard
+                          Admin Dashboard
                         </Link>
                       )}
-                      <hr className="my-3 border-white/20" />
+                      <hr className="my-2 border-gray-200 dark:border-gray-700" />
                       <button
                         onClick={async () => {
                           const isAdmin = user?.role === "admin";
@@ -367,9 +420,9 @@ export const Navbar = () => {
                             navigate("/products");
                           }
                         }}
-                        className="block w-full text-left px-6 py-3 hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-all duration-300 text-sm font-semibold rounded-xl mx-2"
+                        className="block w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors duration-200 text-sm"
                       >
-                        🚪 Logout
+                        Logout
                       </button>
                     </div>
                   )}
@@ -377,17 +430,16 @@ export const Navbar = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="px-8 py-3 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 text-white font-bold rounded-2xl hover:from-primary-700 hover:via-primary-800 hover:to-primary-900 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 hidden sm:block relative overflow-hidden"
+                  className="px-6 py-2 bg-primary-600 dark:bg-primary-700 text-white font-medium rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors duration-300 hidden sm:block"
                 >
-                  <span className="relative z-10 text-white drop-shadow-lg">Sign In</span>
-                  <div className="absolute inset-0 bg-white opacity-0 hover:opacity-10 transition-opacity duration-300"></div>
+                  Sign In
                 </Link>
               )}
 
-              {/* Mobile Menu Button - Premium */}
+              {/* Mobile Menu Button - Clean */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-3 glass-effect rounded-2xl transition-all duration-300 hover:scale-110 hover:shadow-lg"
+                className="lg:hidden p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
               >
                 {isMobileMenuOpen ? (
                   <XMarkIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
@@ -399,44 +451,41 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu - Premium Design */}
+        {/* Mobile Menu - Professional Design */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden glass-effect border-t border-white/20 dark:border-gray-700/30 shadow-2xl backdrop-blur-xl">
-            <div className="container mx-auto px-6 py-6 space-y-3">
+          <div className="lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+            <div className="container mx-auto px-6 py-4 space-y-1">
               <Link
                 to="/products?gender=women"
-                className="block px-6 py-4 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-pink-500 hover:to-rose-500 hover:text-white transition-all duration-300 glass-effect hover:shadow-lg"
+                className="block px-4 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Women
               </Link>
               <Link
                 to="/products?gender=men"
-                className="block px-6 py-4 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-500 hover:text-white transition-all duration-300 glass-effect hover:shadow-lg"
+                className="block px-4 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Men
               </Link>
               <Link
                 to="/products?tags=new-arrival"
-                className="block px-6 py-4 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-emerald-500 hover:to-teal-500 hover:text-white transition-all duration-300 glass-effect hover:shadow-lg"
+                className="block px-4 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 New Arrivals
               </Link>
               <Link
                 to="/products?tags=sale"
-                className="block px-6 py-4 rounded-2xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 transition-all duration-300 shadow-xl hover:shadow-2xl animate-pulse-glow"
+                className="block px-4 py-2.5 rounded-lg font-medium text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <span className="flex items-center space-x-2">
-                  <span>Sale</span>
-                  <span className="text-lg animate-bounce">🔥</span>
-                </span>
+                Sale
               </Link>
               <Link
                 to="/blog"
-                className="block px-6 py-4 rounded-2xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-500 hover:to-violet-500 hover:text-white transition-all duration-300 glass-effect hover:shadow-lg"
+                className="block px-4 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Blog
@@ -444,11 +493,10 @@ export const Navbar = () => {
               {!isAuthenticated && (
                 <Link
                   to="/login"
-                  className="block px-6 py-4 rounded-2xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 text-white hover:from-primary-700 hover:via-primary-800 hover:to-primary-900 transition-all duration-300 shadow-xl hover:shadow-2xl text-center relative overflow-hidden"
+                  className="block px-4 py-2.5 mt-4 rounded-lg font-medium bg-primary-600 dark:bg-primary-700 text-white hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors duration-200 text-center"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <span className="relative z-10 text-white drop-shadow-lg">Sign In</span>
-                  <div className="absolute inset-0 bg-white opacity-0 hover:opacity-10 transition-opacity duration-300"></div>
+                  Sign In
                 </Link>
               )}
             </div>

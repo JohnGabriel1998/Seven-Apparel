@@ -82,7 +82,7 @@ const AdminDashboard = () => {
       <div className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-xl shadow-lg p-6 text-white">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">Welcome to Admin Panel</h1>
+            <h1 className="text-3xl font-bold mb-2 text-white/90">Welcome to Admin Panel</h1>
             <p className="text-primary-100">
               Manage your Seven Apparel store efficiently
             </p>

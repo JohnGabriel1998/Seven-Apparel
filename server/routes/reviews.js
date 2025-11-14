@@ -5,9 +5,11 @@ const {
   createReview,
   updateReview,
   deleteReview,
-  markHelpful
+  markHelpful,
+  getReviewStats,
+  getRecentReviews,
 } = require('../controllers/reviewController');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 router.get('/product/:productId', getProductReviews);
 
@@ -19,5 +21,9 @@ router.route('/:id')
   .delete(protect, deleteReview);
 
 router.put('/:id/helpful', protect, markHelpful);
+
+// Admin endpoints
+router.get('/admin/stats', protect, authorize('admin'), getReviewStats);
+router.get('/admin/recent', protect, authorize('admin'), getRecentReviews);
 
 module.exports = router;

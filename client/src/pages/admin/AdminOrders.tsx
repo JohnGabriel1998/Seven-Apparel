@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../../utils/api";
 import { toast } from "react-hot-toast";
+import { TrashIcon } from "@heroicons/react/24/outline";
 
 interface OrderItem {
   product: {
@@ -57,6 +58,12 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; orderId: string | null }>({
+    show: false,
+    orderId: null,
+  });
 
   useEffect(() => {
     fetchOrders();
@@ -125,6 +132,31 @@ export default function AdminOrders() {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    setDeleteConfirm({ show: true, orderId });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.orderId) return;
+
+    try {
+      await api.delete(`/orders/admin/${deleteConfirm.orderId}`);
+      toast.success("Order deleted successfully");
+      fetchOrders();
+      fetchOrderStats();
+      if (selectedOrder?._id === deleteConfirm.orderId) {
+        setSelectedOrder(null);
+      }
+      setDeleteConfirm({ show: false, orderId: null });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to delete order");
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, orderId: null });
+  };
+
   const getStatusColor = (status: string) => {
     const colors: { [key: string]: string } = {
       pending: "bg-yellow-100 text-yellow-800",
@@ -148,6 +180,17 @@ export default function AdminOrders() {
       order.user.email.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  // Reset to first page when filters/search/orders change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, searchQuery, orders.length]);
+
+  const totalItems = filteredOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   if (loading) {
     return (
@@ -277,7 +320,7 @@ export default function AdminOrders() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                paginatedOrders.map((order) => (
                   <tr key={order._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -320,18 +363,73 @@ export default function AdminOrders() {
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        View Details
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="text-indigo-600 hover:text-indigo-900 font-medium"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOrder(order._id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete Order"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+        {/* Pagination Controls */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-medium">{totalItems === 0 ? 0 : startIndex + 1}</span>-
+            <span className="font-medium">{endIndex}</span> of
+            <span className="font-medium"> {totalItems}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 rounded border ${
+                currentPage === 1
+                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Prev
+            </button>
+            <span className="text-sm text-gray-700">
+              Page <span className="font-medium">{currentPage}</span> of
+              <span className="font-medium"> {totalPages}</span>
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalItems === 0}
+              className={`px-3 py-1 rounded border ${
+                currentPage === totalPages || totalItems === 0
+                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Next
+            </button>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="ml-2 px-2 py-1 border border-gray-300 rounded"
+            >
+              <option value={5}>5 / page</option>
+              <option value={10}>10 / page</option>
+              <option value={20}>20 / page</option>
+              <option value={50}>50 / page</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -433,12 +531,12 @@ export default function AdminOrders() {
                       className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg"
                     >
                       <img
-                        src={item.product.images[0]?.url || "/placeholder.png"}
-                        alt={item.product.name}
+                      src={item.product?.images?.[0]?.url || "/placeholder.png"}
+                      alt={item.product?.name || "Product"}
                         className="w-20 h-20 object-cover rounded"
                       />
                       <div className="flex-1">
-                        <p className="font-medium">{item.product.name}</p>
+                        <p className="font-medium">{item.product?.name || "Product unavailable"}</p>
                         {item.color && (
                           <p className="text-sm text-gray-600">
                             Color: {item.color}
@@ -514,12 +612,56 @@ export default function AdminOrders() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    if (selectedOrder) {
+                      handleDeleteOrder(selectedOrder._id);
+                    }
+                  }}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                  Delete Order
+                </button>
                 <button
                   onClick={() => setSelectedOrder(null)}
                   className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                <TrashIcon className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                Delete Order
+              </h3>
+              <p className="text-sm text-gray-600 text-center mb-6">
+                Are you sure you want to delete this order? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Delete
                 </button>
               </div>
             </div>

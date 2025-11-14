@@ -30,6 +30,92 @@ router.post('/create-intent', protect, async (req, res) => {
   }
 });
 
+// @desc    Webhook for PayMongo events (GCash payments)
+// @route   POST /api/payment/webhook/paymongo
+// @access  Public
+router.post('/webhook/paymongo', express.json(), async (req, res) => {
+  try {
+    const event = req.body;
+    const Order = require('../models/Order');
+
+    // Verify webhook signature (optional but recommended)
+    // const signature = req.headers['paymongo-signature'];
+    // Verify signature using PayMongo webhook secret
+
+    console.log('📥 PayMongo webhook received:', event.type);
+
+    if (event.type === 'payment.paid' || event.type === 'link.payment.paid') {
+      const paymentData = event.data?.attributes || event.data;
+      // PayMongo webhook can have payment_intent_id or link_id depending on payment method
+      const transactionId = paymentData.payment_intent_id || 
+                           paymentData.link_id || 
+                           paymentData.data?.attributes?.payment_intent_id ||
+                           paymentData.data?.attributes?.link_id;
+
+      if (transactionId) {
+        // Find order by transaction ID (could be payment intent ID or link ID)
+        const order = await Order.findOne({ transactionId: transactionId });
+        
+        if (order && order.paymentStatus === 'pending') {
+          // Update order to paid
+          order.paymentStatus = 'paid';
+          order.isPaid = true;
+          order.paidAt = new Date();
+          order.status = 'processing';
+          order.statusHistory.push({
+            status: 'processing',
+            timestamp: new Date(),
+            note: 'Payment confirmed via GCash',
+          });
+
+          // Update product stock
+          const Product = require('../models/Product');
+          for (const item of order.items) {
+            const product = await Product.findById(item.product);
+            if (product) {
+              const variant = product.variants.find((v) => {
+                const variantColor = typeof v.color === "object" ? v.color.name : v.color;
+                const itemColor = typeof item.color === "object" ? item.color.name : item.color;
+                return variantColor === itemColor && v.size === item.size;
+              });
+
+              if (variant) {
+                variant.stock -= item.quantity;
+                product.totalStock -= item.quantity;
+                product.soldCount = (product.soldCount || 0) + item.quantity;
+                await product.save();
+              }
+            }
+          }
+
+          await order.save();
+          console.log(`✅ Order ${order.orderNumber} marked as paid`);
+        }
+      }
+    } else if (event.type === 'payment.failed' || event.type === 'link.payment.failed') {
+      const paymentData = event.data?.attributes || event.data;
+      const transactionId = paymentData.payment_intent_id || 
+                           paymentData.link_id || 
+                           paymentData.data?.attributes?.payment_intent_id ||
+                           paymentData.data?.attributes?.link_id;
+
+      if (transactionId) {
+        const order = await Order.findOne({ transactionId: transactionId });
+        if (order) {
+          order.paymentStatus = 'failed';
+          await order.save();
+          console.log(`❌ Order ${order.orderNumber} payment failed`);
+        }
+      }
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(400).json({ error: 'Webhook processing failed' });
+  }
+});
+
 // @desc    Webhook for Stripe events
 // @route   POST /api/payment/webhook
 // @access  Public

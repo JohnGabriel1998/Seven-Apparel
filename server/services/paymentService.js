@@ -107,42 +107,159 @@ const processPayPalPayment = async (paymentData) => {
 
 /**
  * Process GCash Payment
- * In production: Integrate with GCash API
+ * Real integration using PayMongo API (supports GCash)
+ * PayMongo is a payment gateway that supports GCash payments in the Philippines
  */
 const processGCashPayment = async (paymentData) => {
-  const { phoneNumber, amount, orderNumber } = paymentData;
+  const { phoneNumber, amount, orderNumber, email } = paymentData;
 
   try {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1800));
-
     // Validate Philippine mobile number
     if (!isValidPhilippineNumber(phoneNumber)) {
-      throw new Error("Invalid GCash mobile number");
+      throw new Error("Invalid GCash mobile number. Please enter a valid Philippine mobile number (09XXXXXXXXX)");
     }
 
-    // In production: Call GCash API
-    // const gcash = require('gcash-sdk');
-    // Create payment request and redirect to GCash
+    // Check if PayMongo API keys are configured
+    const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY;
+    const PAYMONGO_PUBLIC_KEY = process.env.PAYMONGO_PUBLIC_KEY;
 
-    const transactionId = `GC_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
+    if (!PAYMONGO_SECRET_KEY || !PAYMONGO_PUBLIC_KEY) {
+      console.warn("⚠️ PayMongo API keys not configured. Using simulation mode.");
+      // Fallback to simulation if API keys are not set
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      const transactionId = `GC_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+      
+      return {
+        success: true,
+        transactionId,
+        paymentMethod: "gcash",
+        amount,
+        message: "GCash payment processed successfully (Simulation Mode - Configure PayMongo API keys for real payments)",
+        timestamp: new Date().toISOString(),
+        phoneNumber: phoneNumber.replace(/(\d{4})(\d{3})(\d{4})/, "$1-$2-$3"),
+        requiresAction: false,
+        paymentUrl: null,
+      };
+    }
 
+    // Real PayMongo API integration
+    // Using Node.js built-in https module (no external dependency needed)
+    const https = require('https');
+    
+    // Normalize phone number (remove +63, ensure it starts with 09)
+    let normalizedPhone = phoneNumber.replace(/\D/g, '');
+    if (normalizedPhone.startsWith('63')) {
+      normalizedPhone = '0' + normalizedPhone.substring(2);
+    }
+    if (!normalizedPhone.startsWith('09')) {
+      normalizedPhone = '09' + normalizedPhone.substring(normalizedPhone.length - 9);
+    }
+
+    // Helper function to make HTTP requests to PayMongo API
+    const makeRequest = (url, data, secretKey) => {
+      return new Promise((resolve, reject) => {
+        const postData = JSON.stringify(data);
+        const auth = Buffer.from(secretKey + ':').toString('base64');
+        
+        const options = {
+          hostname: 'api.paymongo.com',
+          port: 443,
+          path: url,
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          let responseData = '';
+          res.on('data', (chunk) => {
+            responseData += chunk;
+          });
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(responseData);
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                resolve(parsed);
+              } else {
+                const errorMsg = parsed.errors?.[0]?.detail || parsed.errors?.[0]?.message || 'Request failed';
+                reject(new Error(errorMsg));
+              }
+            } catch (error) {
+              reject(error);
+            }
+          });
+        });
+
+        req.on('error', (error) => {
+          reject(error);
+        });
+
+        req.write(postData);
+        req.end();
+      });
+    };
+
+    // Create a payment link with PayMongo (simpler approach for GCash)
+    // This creates a payment link that redirects users to GCash
+    const paymentLinkData = {
+      data: {
+        attributes: {
+          amount: Math.round(amount * 100), // Convert to centavos
+          currency: 'PHP',
+          description: `Order ${orderNumber} - GCash Payment`,
+          statements: {
+            description: `Payment for Order ${orderNumber}`,
+          },
+        },
+      },
+    };
+
+    const linkResponse = await makeRequest(
+      '/v1/links',
+      paymentLinkData,
+      PAYMONGO_SECRET_KEY
+    );
+
+    // PayMongo API returns: { data: { id: "...", attributes: {...} } }
+    const paymentLinkId = linkResponse.data?.id || linkResponse.data?.data?.id;
+    const paymentUrl = linkResponse.data?.attributes?.checkout_url || linkResponse.data?.data?.attributes?.checkout_url;
+
+    if (!paymentLinkId || !paymentUrl) {
+      throw new Error('Failed to create GCash payment link');
+    }
+
+    // Payment link created - user needs to complete payment on GCash
     return {
       success: true,
-      transactionId,
+      transactionId: paymentLinkId,
       paymentMethod: "gcash",
       amount,
-      message: "GCash payment processed successfully",
+      message: "Please complete payment on GCash",
       timestamp: new Date().toISOString(),
-      phoneNumber: phoneNumber.replace(/(\d{4})(\d{3})(\d{4})/, "$1-$2-$3"),
+      phoneNumber: normalizedPhone.replace(/(\d{4})(\d{3})(\d{4})/, "$1-$2-$3"),
+      requiresAction: true,
+      paymentUrl: paymentUrl,
     };
   } catch (error) {
-    console.error("GCash payment error:", error);
+    console.error("GCash payment error:", error.response?.data || error.message);
+    
+    // Provide user-friendly error messages
+    let errorMessage = "GCash payment failed";
+    if (error.response?.data?.errors) {
+      const errors = error.response.data.errors;
+      errorMessage = errors.map(e => e.detail || e.message).join(', ');
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     return {
       success: false,
-      message: error.message || "GCash payment failed",
+      message: errorMessage,
       paymentMethod: "gcash",
     };
   }

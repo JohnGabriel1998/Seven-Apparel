@@ -64,7 +64,7 @@ const reviewSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Ensure user can only review a product once
-reviewSchema.index({ product: 1, user: 1 }, { unique: true });
+// Index for faster lookups (not unique to allow multiple reviews per user)
+reviewSchema.index({ product: 1, user: 1 });
 
 module.exports = mongoose.model('Review', reviewSchema);

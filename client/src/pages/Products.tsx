@@ -23,11 +23,25 @@ export const Products = () => {
   const [filters, setFilters] = useState({
     category: searchParams.get("category") || "",
     gender: searchParams.get("gender") || "",
+    tags: searchParams.get("tags") || "",
     minPrice: searchParams.get("minPrice") || "",
     maxPrice: searchParams.get("maxPrice") || "",
     brand: searchParams.get("brand") || "",
     sort: searchParams.get("sort") || "newest",
   });
+
+  // Sync filters with URL params when they change (e.g., from navigation links)
+  useEffect(() => {
+    setFilters({
+      category: searchParams.get("category") || "",
+      gender: searchParams.get("gender") || "",
+      tags: searchParams.get("tags") || "",
+      minPrice: searchParams.get("minPrice") || "",
+      maxPrice: searchParams.get("maxPrice") || "",
+      brand: searchParams.get("brand") || "",
+      sort: searchParams.get("sort") || "newest",
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     fetchProducts();
@@ -65,6 +79,7 @@ export const Products = () => {
     setFilters({
       category: "",
       gender: "",
+      tags: "",
       minPrice: "",
       maxPrice: "",
       brand: "",
@@ -73,9 +88,87 @@ export const Products = () => {
     setSearchParams({});
   };
 
+  const handleCategoryFilter = (category: string, value: string) => {
+    const newFilters = { ...filters };
+    if (category === "gender") {
+      newFilters.gender = value;
+      newFilters.tags = ""; // Clear tags when filtering by gender
+    } else if (category === "tags") {
+      newFilters.tags = value;
+      newFilters.gender = ""; // Clear gender when filtering by tags
+    }
+    setFilters(newFilters);
+
+    const params = new URLSearchParams();
+    Object.entries(newFilters).forEach(([k, v]) => {
+      if (v) params.set(k, v);
+    });
+    setSearchParams(params);
+  };
+
+  const getPageTitle = () => {
+    if (filters.gender === "women") return "Women's Collection";
+    if (filters.gender === "men") return "Men's Collection";
+    if (filters.tags === "new-arrival") return "New Arrivals";
+    if (filters.tags === "sale") return "Sale Items";
+    return "Shop All Products";
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Shop All Products</h1>
+      <h1 className="text-3xl font-bold mb-8">{getPageTitle()}</h1>
+
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <button
+          onClick={() => handleCategoryFilter("gender", "women")}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 ${
+            filters.gender === "women"
+              ? "bg-primary-600 text-white shadow-lg"
+              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          }`}
+        >
+          Women
+        </button>
+        <button
+          onClick={() => handleCategoryFilter("gender", "men")}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 ${
+            filters.gender === "men"
+              ? "bg-primary-600 text-white shadow-lg"
+              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          }`}
+        >
+          Men
+        </button>
+        <button
+          onClick={() => handleCategoryFilter("tags", "new-arrival")}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 ${
+            filters.tags === "new-arrival"
+              ? "bg-primary-600 text-white shadow-lg"
+              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          }`}
+        >
+          New Arrivals
+        </button>
+        <button
+          onClick={() => handleCategoryFilter("tags", "sale")}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 ${
+            filters.tags === "sale"
+              ? "bg-red-600 text-white shadow-lg"
+              : "bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          }`}
+        >
+          Sale
+        </button>
+        {(filters.gender || filters.tags) && (
+          <button
+            onClick={clearAllFilters}
+            className="px-6 py-2.5 rounded-lg font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300"
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar */}
@@ -102,13 +195,51 @@ export const Products = () => {
               <h3 className="font-semibold mb-2">Gender</h3>
               <select
                 value={filters.gender}
-                onChange={(e) => handleFilterChange("gender", e.target.value)}
+                onChange={(e) => {
+                  const newFilters = { ...filters, gender: e.target.value };
+                  if (e.target.value) {
+                    newFilters.tags = ""; // Clear tags when filtering by gender
+                  }
+                  setFilters(newFilters);
+
+                  const params = new URLSearchParams();
+                  Object.entries(newFilters).forEach(([k, v]) => {
+                    if (v) params.set(k, v);
+                  });
+                  setSearchParams(params);
+                }}
                 className="input w-full"
               >
                 <option value="">All</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
                 <option value="unisex">Unisex</option>
+              </select>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="font-semibold mb-2">Tags</h3>
+              <select
+                value={filters.tags}
+                onChange={(e) => {
+                  const newFilters = { ...filters, tags: e.target.value };
+                  if (e.target.value) {
+                    newFilters.gender = ""; // Clear gender when filtering by tags
+                  }
+                  setFilters(newFilters);
+
+                  const params = new URLSearchParams();
+                  Object.entries(newFilters).forEach(([k, v]) => {
+                    if (v) params.set(k, v);
+                  });
+                  setSearchParams(params);
+                }}
+                className="input w-full"
+              >
+                <option value="">All Tags</option>
+                <option value="new-arrival">New Arrival</option>
+                <option value="sale">Sale</option>
+                <option value="featured">Featured</option>
               </select>
             </div>
 

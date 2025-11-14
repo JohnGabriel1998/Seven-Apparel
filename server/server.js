@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
 const connectDB = require("./config/db");
+const mongoose = require("mongoose");
+const { ensureReviewIndexes } = require("./utils/ensureIndexes");
 const errorHandler = require("./middleware/errorHandler");
 
 // Load env vars
@@ -40,6 +42,7 @@ app.use("/api/support", require("./routes/support"));
 app.use("/api/analytics", require("./routes/analytics"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/upload", require("./routes/upload"));
+app.use("/api/events", require("./routes/events"));
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -50,6 +53,11 @@ app.get("/api/health", (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+// Run non-blocking index fix after DB is connected
+mongoose.connection.once('open', async () => {
+  await ensureReviewIndexes(mongoose);
+});
 
 app.listen(PORT, () => {
   console.log(

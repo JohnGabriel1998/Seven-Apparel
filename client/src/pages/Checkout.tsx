@@ -197,6 +197,20 @@ export const Checkout = () => {
 
       setOrderId(data.data._id || data._id);
 
+      // Check if payment requires action (e.g., redirect to GCash)
+      if (data.payment?.requiresAction && data.payment?.paymentUrl) {
+        setShowLoader(false);
+        toast.success("Redirecting to GCash to complete payment...", {
+          duration: 3000,
+        });
+        
+        // Redirect to GCash payment page
+        setTimeout(() => {
+          window.location.href = data.payment.paymentUrl;
+        }, 1500);
+        return;
+      }
+
       // Show success toast after a brief delay
       setTimeout(() => {
         setShowLoader(false);

@@ -134,7 +134,7 @@ router.get("/", protect, authorize("admin"), async (req, res) => {
 // @access  Private
 router.put("/profile", protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select("+password");
 
     if (!user) {
       return res.status(404).json({
@@ -145,16 +145,50 @@ router.put("/profile", protect, async (req, res) => {
 
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
+    
+    // Update avatar if provided
+    if (req.body.avatar) {
+      user.avatar = req.body.avatar;
+    }
 
-    if (req.body.password) {
-      user.password = req.body.password;
+    // Update password if provided (requires current password verification)
+    if (req.body.newPassword) {
+      if (!req.body.currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is required to change password",
+        });
+      }
+
+      // Verify current password
+      const isMatch = await user.matchPassword(req.body.currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Current password is incorrect",
+        });
+      }
+
+      // Validate new password length
+      if (req.body.newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: "Password must be at least 6 characters",
+        });
+      }
+
+      user.password = req.body.newPassword;
     }
 
     await user.save();
 
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
     res.status(200).json({
       success: true,
-      data: user,
+      data: userResponse,
     });
   } catch (error) {
     res.status(500).json({

@@ -89,7 +89,33 @@ exports.createOrder = async (req, res) => {
 
     // Handle payment result
     if (paymentResult.success) {
-      // Update order with payment information
+      // Check if payment requires user action (e.g., redirect to GCash)
+      if (paymentResult.requiresAction && paymentResult.paymentUrl) {
+        // Payment requires user to complete on GCash
+        order.transactionId = paymentResult.transactionId;
+        order.paymentStatus = "pending"; // Keep as pending until user completes payment
+        order.paymentResult = {
+          id: paymentResult.transactionId,
+          status: "pending",
+          paymentUrl: paymentResult.paymentUrl,
+        };
+        await order.save();
+
+        // Return payment URL for frontend redirect
+        return res.status(200).json({
+          success: true,
+          data: order,
+          payment: {
+            status: "pending",
+            requiresAction: true,
+            paymentUrl: paymentResult.paymentUrl,
+            transactionId: paymentResult.transactionId,
+            message: paymentResult.message,
+          },
+        });
+      }
+
+      // Payment succeeded immediately
       order.paymentStatus = "paid";
       order.isPaid = true;
       order.paidAt = new Date();

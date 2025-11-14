@@ -10,6 +10,7 @@ interface User {
   role: "user" | "admin";
   isActive: boolean;
   createdAt: string;
+  avatar?: string;
   phone?: string;
   address?: {
     street?: string;
@@ -111,6 +112,29 @@ export default function AdminUsers() {
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to delete user");
     }
+  };
+
+  const getAvatarUrl = (avatar?: string) => {
+    if (avatar && avatar !== "https://via.placeholder.com/150") {
+      // If it's a full URL, use it directly
+      if (avatar.startsWith("http")) {
+        return avatar;
+      }
+      // If it's a relative path, prepend the server base URL (without /api)
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const baseUrl = apiUrl.replace("/api", "");
+      return `${baseUrl}${avatar}`;
+    }
+    return null;
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const filteredUsers = users.filter((user) => {
@@ -234,9 +258,29 @@ export default function AdminUsers() {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold">
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
+                          {getAvatarUrl(user.avatar) ? (
+                            <img
+                              src={getAvatarUrl(user.avatar) || undefined}
+                              alt={user.name}
+                              className="h-10 w-10 rounded-full object-cover"
+                              onError={(e) => {
+                                // Fallback to initials if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = "none";
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  const fallback = document.createElement("div");
+                                  fallback.className = "h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold";
+                                  fallback.textContent = getInitials(user.name);
+                                  parent.appendChild(fallback);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold">
+                              {getInitials(user.name)}
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
@@ -325,8 +369,28 @@ export default function AdminUsers() {
               {/* User Info */}
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="h-20 w-20 rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xl font-semibold">
-                    {selectedUser.name.charAt(0).toUpperCase()}
+                  <div className="h-20 w-20 rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xl font-semibold overflow-hidden flex-shrink-0">
+                    {getAvatarUrl(selectedUser.avatar) ? (
+                      <img
+                        src={getAvatarUrl(selectedUser.avatar) || undefined}
+                        alt={selectedUser.name}
+                        className="h-full w-full object-cover rounded-full"
+                        onError={(e) => {
+                          // Fallback to initials if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement("div");
+                            fallback.className = "h-full w-full rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xl font-semibold";
+                            fallback.textContent = getInitials(selectedUser.name);
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span>{getInitials(selectedUser.name)}</span>
+                    )}
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold">

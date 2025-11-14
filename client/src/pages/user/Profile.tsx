@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../store/useAuthStore";
 import api from "../../utils/api";
@@ -11,6 +11,10 @@ import {
   CheckCircleIcon,
   TruckIcon,
   XCircleIcon,
+  CameraIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
 interface Order {
@@ -41,7 +45,7 @@ interface Product {
 }
 
 export const Profile = () => {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"info" | "orders" | "products">(
     "info"
   );
@@ -49,6 +53,23 @@ export const Profile = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<{
+    current?: string;
+    new?: string;
+    confirm?: string;
+  }>({});
 
   useEffect(() => {
     if (activeTab === "orders") {
@@ -124,6 +145,143 @@ export const Profile = () => {
     return "https://via.placeholder.com/150";
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size must be less than 2MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      // Upload image
+      const uploadResponse = await api.post("/upload/profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const imageUrl = uploadResponse.data.imageUrl;
+
+      // Update user profile with new avatar
+      const updateResponse = await api.put("/users/profile", {
+        avatar: imageUrl,
+      });
+
+      // Update user in store
+      updateUser(updateResponse.data.data);
+      toast.success("Profile image updated successfully!");
+    } catch (error: any) {
+      console.error("Image upload error:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to upload profile image"
+      );
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const getAvatarUrl = () => {
+    if (user?.avatar && user.avatar !== "https://via.placeholder.com/150") {
+      // If it's a full URL, use it directly
+      if (user.avatar.startsWith("http")) {
+        return user.avatar;
+      }
+      // If it's a relative path, prepend the server base URL (without /api)
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const baseUrl = apiUrl.replace("/api", "");
+      return `${baseUrl}${user.avatar}`;
+    }
+    return null;
+  };
+
+  const getInitials = () => {
+    if (user?.name) {
+      return user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return "U";
+  };
+
+  const validatePasswordForm = () => {
+    const errors: { current?: string; new?: string; confirm?: string } = {};
+
+    if (!currentPassword) {
+      errors.current = "Current password is required";
+    }
+
+    if (!newPassword) {
+      errors.new = "New password is required";
+    } else if (newPassword.length < 6) {
+      errors.new = "Password must be at least 6 characters";
+    }
+
+    if (!confirmPassword) {
+      errors.confirm = "Please confirm your new password";
+    } else if (newPassword !== confirmPassword) {
+      errors.confirm = "Passwords do not match";
+    }
+
+    setPasswordErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validatePasswordForm()) {
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await api.put("/users/profile", {
+        currentPassword,
+        newPassword,
+      });
+
+      toast.success("Password changed successfully!");
+      
+      // Reset form
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordForm(false);
+      setPasswordErrors({});
+    } catch (error: any) {
+      console.error("Password change error:", error);
+      const errorMessage = error.response?.data?.message || "Failed to change password";
+      toast.error(errorMessage);
+      
+      // Set specific error for current password
+      if (error.response?.status === 401) {
+        setPasswordErrors({ current: "Current password is incorrect" });
+      }
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">My Account</h1>
@@ -169,7 +327,57 @@ export const Profile = () => {
       {activeTab === "info" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-2xl font-bold mb-6">Profile Information</h2>
-          <div className="space-y-4">
+          
+          {/* Profile Image Section */}
+          <div className="flex flex-col items-center mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                {getAvatarUrl() ? (
+                  <img
+                    src={getAvatarUrl() || undefined}
+                    alt={user?.name || "Profile"}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to initials if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `<span class="text-4xl font-bold">${getInitials()}</span>`;
+                      }
+                    }}
+                  />
+                ) : (
+                  <span>{getInitials()}</span>
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="absolute bottom-0 right-0 bg-primary-600 hover:bg-primary-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Change profile picture"
+              >
+                {uploadingImage ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <CameraIcon className="w-5 h-5" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+              Click the camera icon to upload a profile picture
+            </p>
+          </div>
+
+          {/* Profile Details */}
+          <div className="space-y-4 mb-8">
             <div>
               <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Name
@@ -188,6 +396,188 @@ export const Profile = () => {
               </label>
               <p className="text-lg font-semibold capitalize">{user?.role}</p>
             </div>
+          </div>
+
+          {/* Password Change Section */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <LockClosedIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold">Change Password</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPasswordForm(!showPasswordForm);
+                  if (showPasswordForm) {
+                    // Reset form when closing
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setPasswordErrors({});
+                  }
+                }}
+                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium text-sm"
+              >
+                {showPasswordForm ? "Cancel" : "Change Password"}
+              </button>
+            </div>
+
+            {showPasswordForm && (
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                {/* Current Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => {
+                        setCurrentPassword(e.target.value);
+                        if (passwordErrors.current) {
+                          setPasswordErrors({ ...passwordErrors, current: undefined });
+                        }
+                      }}
+                      className={`input w-full pr-10 ${
+                        passwordErrors.current ? "border-red-500" : ""
+                      }`}
+                      placeholder="Enter your current password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {showCurrentPassword ? (
+                        <EyeSlashIcon className="w-5 h-5" />
+                      ) : (
+                        <EyeIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {passwordErrors.current && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {passwordErrors.current}
+                    </p>
+                  )}
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        if (passwordErrors.new) {
+                          setPasswordErrors({ ...passwordErrors, new: undefined });
+                        }
+                        // Clear confirm error if passwords now match
+                        if (e.target.value === confirmPassword && passwordErrors.confirm) {
+                          setPasswordErrors({ ...passwordErrors, confirm: undefined });
+                        }
+                      }}
+                      className={`input w-full pr-10 ${
+                        passwordErrors.new ? "border-red-500" : ""
+                      }`}
+                      placeholder="Enter your new password (min. 6 characters)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {showNewPassword ? (
+                        <EyeSlashIcon className="w-5 h-5" />
+                      ) : (
+                        <EyeIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {passwordErrors.new && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {passwordErrors.new}
+                    </p>
+                  )}
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (passwordErrors.confirm) {
+                          setPasswordErrors({ ...passwordErrors, confirm: undefined });
+                        }
+                      }}
+                      className={`input w-full pr-10 ${
+                        passwordErrors.confirm ? "border-red-500" : ""
+                      }`}
+                      placeholder="Confirm your new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeSlashIcon className="w-5 h-5" />
+                      ) : (
+                        <EyeIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {passwordErrors.confirm && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {passwordErrors.confirm}
+                    </p>
+                  )}
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={changingPassword}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {changingPassword ? (
+                      <span className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Changing Password...
+                      </span>
+                    ) : (
+                      "Change Password"
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordForm(false);
+                      setCurrentPassword("");
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setPasswordErrors({});
+                    }}
+                    className="btn-secondary"
+                    disabled={changingPassword}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

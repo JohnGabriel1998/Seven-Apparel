@@ -26,6 +26,8 @@ const AdminProducts = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const [editingStock, setEditingStock] = useState<Record<string, number>>({});
+  const [savingStock, setSavingStock] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchProducts();
@@ -45,6 +47,38 @@ const AdminProducts = () => {
       setProducts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setStockValue = (id: string, value: number) => {
+    setEditingStock((prev) => ({ ...prev, [id]: Math.max(0, Math.floor(value || 0)) }));
+  };
+
+  const saveStock = async (id: string) => {
+    const newValue = editingStock[id];
+    if (newValue === undefined) return;
+    setSavingStock((s) => ({ ...s, [id]: true }));
+    try {
+      // Fetch full product to update variant-level stock too
+      const { data: productRes } = await api.get(`/products/${id}`);
+      const full = productRes.data || productRes;
+      let payload: any = {};
+      if (Array.isArray(full?.variants) && full.variants.length > 0) {
+        const updatedVariants = full.variants.map((v: any) => ({ ...v, stock: Math.max(0, Math.floor(newValue)) }));
+        const total = updatedVariants.reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+        payload = { variants: updatedVariants, totalStock: total };
+      } else {
+        payload = { totalStock: Math.max(0, Math.floor(newValue)) };
+      }
+
+      await api.put(`/products/${id}`, payload);
+      toast.success("Stock updated");
+      // update local list optimistically (use computed total)
+      setProducts((list) => list.map((p) => (p._id === id ? { ...p, totalStock: payload.totalStock ?? newValue } as any : p)));
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update stock");
+    } finally {
+      setSavingStock((s) => ({ ...s, [id]: false }));
     }
   };
 
@@ -196,7 +230,37 @@ const AdminProducts = () => {
                   ₱{product.price}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {product.totalStock}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStockValue(product._id, (editingStock[product._id] ?? product.totalStock) - 1)}
+                      className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                      title="Decrease"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={editingStock[product._id] ?? product.totalStock}
+                      onChange={(e) => setStockValue(product._id, parseInt(e.target.value) || 0)}
+                      className="w-20 px-3 py-1 border border-gray-300 rounded"
+                    />
+                    <button
+                      onClick={() => setStockValue(product._id, (editingStock[product._id] ?? product.totalStock) + 1)}
+                      className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                      title="Increase"
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => saveStock(product._id)}
+                      disabled={savingStock[product._id]}
+                      className={`ml-2 px-3 py-1 rounded ${savingStock[product._id] ? 'bg-gray-200 text-gray-500' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                    >
+                      {savingStock[product._id] ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span

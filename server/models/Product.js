@@ -94,13 +94,6 @@ const productSchema = new mongoose.Schema(
     tags: [
       {
         type: String,
-        enum: [
-          "new-arrival",
-          "sale",
-          "limited-edition",
-          "bestseller",
-          "trending",
-        ],
       },
     ],
     rating: {

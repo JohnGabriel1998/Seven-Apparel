@@ -5,13 +5,17 @@ const path = require("path");
 const fs = require("fs");
 const { protect, authorize } = require("../middleware/auth");
 
-// Ensure uploads directory exists
+// Ensure uploads directories exist
 const uploadsDir = path.join(__dirname, "../uploads/products");
+const profileUploadsDir = path.join(__dirname, "../uploads/profiles");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+if (!fs.existsSync(profileUploadsDir)) {
+  fs.mkdirSync(profileUploadsDir, { recursive: true });
+}
 
-// Configure multer for file storage
+// Configure multer for product file storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
@@ -22,6 +26,21 @@ const storage = multer.diskStorage({
     cb(
       null,
       file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
+});
+
+// Configure multer for profile image storage
+const profileStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, profileUploadsDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename: timestamp-randomstring-originalname
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      "profile-" + uniqueSuffix + path.extname(file.originalname)
     );
   },
 });
@@ -41,11 +60,20 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
+// Configure multer for products
 const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter: fileFilter,
+});
+
+// Configure multer for profile images
+const profileUpload = multer({
+  storage: profileStorage,
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB max file size for profile images
   },
   fileFilter: fileFilter,
 });
@@ -71,6 +99,38 @@ router.post(
         success: true,
         message: "Image uploaded successfully",
         filePath: filePath,
+        filename: req.file.filename,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Error uploading file" });
+    }
+  }
+);
+
+// @desc    Upload single image (alias for product upload, used by blog)
+// @route   POST /api/upload/single
+// @access  Private/Admin
+router.post(
+  "/single",
+  protect,
+  authorize("admin"),
+  upload.single("image"),
+  (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Get the base URL from the request
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const imageUrl = `${baseUrl}/uploads/products/${req.file.filename}`;
+
+      res.status(200).json({
+        success: true,
+        message: "Image uploaded successfully",
+        imageUrl: imageUrl,
+        filePath: `/uploads/products/${req.file.filename}`,
         filename: req.file.filename,
       });
     } catch (error) {
@@ -108,6 +168,37 @@ router.post(
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({ message: "Error uploading files" });
+    }
+  }
+);
+
+// @desc    Upload profile image
+// @route   POST /api/upload/profile
+// @access  Private
+router.post(
+  "/profile",
+  protect,
+  profileUpload.single("image"),
+  (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Get the base URL from the request
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const imageUrl = `${baseUrl}/uploads/profiles/${req.file.filename}`;
+
+      res.status(200).json({
+        success: true,
+        message: "Profile image uploaded successfully",
+        imageUrl: imageUrl,
+        filePath: `/uploads/profiles/${req.file.filename}`,
+        filename: req.file.filename,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Error uploading file" });
     }
   }
 );

@@ -207,9 +207,27 @@ const AddEditProduct = () => {
     });
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+  const addTag = (tagValue?: string) => {
+    const tagToAdd = tagValue || tagInput.trim();
+    if (!tagToAdd) return;
+
+    // Normalize tag: convert to lowercase and replace spaces with hyphens
+    const normalizeTag = (tag: string) => {
+      return tag
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-") // Replace spaces with hyphens
+        .replace(/[^a-z0-9-]/g, ""); // Remove special characters except hyphens
+    };
+
+    // Split by comma and normalize each tag
+    const newTags = tagToAdd
+      .split(",")
+      .map(normalizeTag)
+      .filter((tag) => tag && !formData.tags.includes(tag));
+
+    if (newTags.length > 0) {
+      setFormData({ ...formData, tags: [...formData.tags, ...newTags] });
       setTagInput("");
     }
   };
@@ -269,7 +287,7 @@ const AddEditProduct = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Price ($) *
+                Price (₱) *
               </label>
               <input
                 type="number"
@@ -593,6 +611,28 @@ const AddEditProduct = () => {
             Tags
           </h2>
 
+          {/* Quick Tag Buttons */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Quick add:</p>
+            <div className="flex flex-wrap gap-2">
+              {["new-arrival", "sale", "limited-edition", "bestseller", "trending"].map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => addTag(tag)}
+                  disabled={formData.tags.includes(tag)}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    formData.tags.includes(tag)
+                      ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-900 hover:text-primary-700 dark:hover:text-primary-300"
+                  }`}
+                >
+                  {tag.replace("-", " ")}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-2 mb-4">
             <input
               type="text"
@@ -602,11 +642,11 @@ const AddEditProduct = () => {
                 e.key === "Enter" && (e.preventDefault(), addTag())
               }
               className="input flex-1"
-              placeholder="Enter tag and press Enter"
+              placeholder="Enter tag and press Enter (spaces will become hyphens)"
             />
             <button
               type="button"
-              onClick={addTag}
+              onClick={() => addTag()}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
               Add

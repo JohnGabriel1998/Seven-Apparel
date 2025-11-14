@@ -52,18 +52,7 @@ exports.createReview = async (req, res) => {
   try {
     const { product, rating, title, comment, size, color, fit, quality, comfort } = req.body;
 
-    // Check if user already reviewed this product
-    const existingReview = await Review.findOne({
-      product,
-      user: req.user.id
-    });
-
-    if (existingReview) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already reviewed this product'
-      });
-    }
+    // Allow multiple reviews per user per product
 
     const review = await Review.create({
       product,
@@ -75,7 +64,8 @@ exports.createReview = async (req, res) => {
       color,
       fit,
       quality,
-      comfort
+      comfort,
+      status: 'approved' // auto-approve customer reviews so they appear immediately
     });
 
     // Update product rating
@@ -90,6 +80,38 @@ exports.createReview = async (req, res) => {
       success: false,
       message: error.message
     });
+  }
+};
+
+// @desc    Admin reviews stats
+// @route   GET /api/reviews/admin/stats
+// @access  Private/Admin
+exports.getReviewStats = async (req, res) => {
+  try {
+    const total = await Review.countDocuments();
+    const pending = await Review.countDocuments({ status: 'pending' });
+    const approved = await Review.countDocuments({ status: 'approved' });
+    const rejected = await Review.countDocuments({ status: 'rejected' });
+    res.status(200).json({ success: true, total, pending, approved, rejected });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Admin recent reviews
+// @route   GET /api/reviews/admin/recent
+// @access  Private/Admin
+exports.getRecentReviews = async (req, res) => {
+  try {
+    const limit = Number(req.query.limit || 10);
+    const reviews = await Review.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('user', 'name')
+      .populate('product', 'name');
+    res.status(200).json({ success: true, data: reviews });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

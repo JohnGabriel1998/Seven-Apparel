@@ -17,8 +17,8 @@ const AdminSettings = () => {
   const [storeName, setStoreName] = useState("Seven Apparel");
   const [storeEmail, setStoreEmail] = useState("admin@sevenapparel.com");
   const [storePhone, setStorePhone] = useState("+1 (555) 123-4567");
-  const [currency, setCurrency] = useState("USD");
-  const [timezone, setTimezone] = useState("America/New_York");
+  const [currency, setCurrency] = useState("PHP");
+  const [timezone, setTimezone] = useState("Asia/Manila");
 
   // Notification Settings
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -149,6 +149,7 @@ const AdminSettings = () => {
                       onChange={(e) => setCurrency(e.target.value)}
                       className="input"
                     >
+                      <option value="PHP">PHP (₱)</option>
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
                       <option value="GBP">GBP (£)</option>

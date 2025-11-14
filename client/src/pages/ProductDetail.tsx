@@ -31,6 +31,15 @@ interface Product {
   totalStock: number;
 }
 
+interface ReviewItem {
+  _id: string;
+  user: { name: string } | string;
+  rating: number;
+  title: string;
+  comment: string;
+  createdAt: string;
+}
+
 export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -51,9 +60,38 @@ export const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [ratingInput, setRatingInput] = useState(5);
+  const [titleInput, setTitleInput] = useState("");
+  const [commentInput, setCommentInput] = useState("");
+  const [canReview, setCanReview] = useState(false);
 
   useEffect(() => {
     fetchProduct();
+    fetchReviews();
+    if (isAuthenticated) verifyPurchase();
+  }, [id]);
+
+  // Live refresh via Server-Sent Events
+  useEffect(() => {
+    if (!id) return;
+    const eventsUrl = "/api/events"; // same origin proxy
+    const es = new EventSource(eventsUrl, { withCredentials: false } as any);
+    const onUpdate = (e: MessageEvent) => {
+      try {
+        const payload = JSON.parse(e.data || "{}");
+        if (payload?.id === id) {
+          fetchProduct();
+          fetchReviews();
+        }
+      } catch {}
+    };
+    es.addEventListener("productUpdated", onUpdate as any);
+    return () => {
+      es.removeEventListener("productUpdated", onUpdate as any);
+      es.close();
+    };
   }, [id]);
 
   const fetchProduct = async () => {
@@ -78,6 +116,66 @@ export const ProductDetail = () => {
       toast.error(error.response?.data?.message || "Failed to load product");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    if (!id) return;
+    try {
+      setReviewsLoading(true);
+      const { data } = await api.get(`/reviews/product/${id}`);
+      const rows = data.data || data.reviews || [];
+      setReviews(rows);
+    } catch (error) {
+      // silent fail on reviews
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const verifyPurchase = async () => {
+    try {
+      const { data } = await api.get("/orders/my");
+      const myOrders = data.data || data.orders || [];
+      const delivered = myOrders.some((o: any) =>
+        o.status === "delivered" && Array.isArray(o.items) &&
+        o.items.some((it: any) => (it.product?._id || it.product) === id)
+      );
+      setCanReview(delivered);
+    } catch (_) {
+      setCanReview(false);
+    }
+  };
+
+  const submitReview = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to write a review");
+      navigate("/login", { state: { from: `/products/${id}` } });
+      return;
+    }
+    if (!canReview) {
+      toast.error("You can review after your order is delivered.");
+      return;
+    }
+    if (!titleInput.trim() || !commentInput.trim()) {
+      toast.error("Please fill in title and comment");
+      return;
+    }
+    try {
+      await api.post("/reviews", {
+        product: id,
+        rating: ratingInput,
+        title: titleInput.trim(),
+        comment: commentInput.trim(),
+      });
+      toast.success("Review submitted!");
+      setTitleInput("");
+      setCommentInput("");
+      setRatingInput(5);
+      fetchReviews();
+      fetchProduct();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to submit review");
     }
   };
 
@@ -164,6 +262,7 @@ export const ProductDetail = () => {
   }
 
   const variant = getSelectedVariant();
+  const stockAvailable = (variant?.stock ?? product.totalStock ?? 0) as number;
   const availableColors = getAvailableColors();
   const availableSizes = getAvailableSizes();
 
@@ -309,17 +408,15 @@ export const ProductDetail = () => {
           </div>
 
           {/* Stock Info */}
-          {variant && (
-            <p className="mb-4 text-sm">
-              {variant.stock > 0 ? (
-                <span className="text-green-600">
-                  In Stock ({variant.stock} available)
-                </span>
-              ) : (
-                <span className="text-red-600">Out of Stock</span>
-              )}
-            </p>
-          )}
+          <p className="mb-4 text-sm">
+            {stockAvailable > 0 ? (
+              <span className="text-green-600">
+                In Stock ({stockAvailable} available)
+              </span>
+            ) : (
+              <span className="text-red-600">Out of Stock</span>
+            )}
+          </p>
 
           {/* Quantity */}
           <div className="mb-6">
@@ -335,9 +432,7 @@ export const ProductDetail = () => {
                 {quantity}
               </span>
               <button
-                onClick={() =>
-                  setQuantity(Math.min(variant?.stock || 1, quantity + 1))
-                }
+                onClick={() => setQuantity(Math.min(stockAvailable || 1, quantity + 1))}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 +
@@ -424,6 +519,78 @@ export const ProductDetail = () => {
               </li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <h3 className="text-xl font-semibold mb-4">Customer Reviews</h3>
+          {reviewsLoading ? (
+            <div className="py-8 text-gray-500">Loading reviews...</div>
+          ) : reviews.length === 0 ? (
+            <div className="py-8 text-gray-500">No reviews yet.</div>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((r) => (
+                <div key={r._id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {typeof r.user === "string" ? "Customer" : r.user?.name || "Customer"}
+                    </div>
+                    <div className="flex items-center">
+                      {[1,2,3,4,5].map((s)=> (
+                        <StarIcon key={s} className={`w-4 h-4 ${s <= r.rating ? 'text-yellow-400' : 'text-gray-300'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-sm text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</div>
+                  <div className="mt-2 font-semibold">{r.title}</div>
+                  <p className="mt-1 text-gray-700 dark:text-gray-300">{r.comment}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold mb-4">Write a Review</h3>
+          {!isAuthenticated ? (
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Please log in to write a review.</p>
+              <button
+                onClick={() => navigate('/login', { state: { from: `/products/${id}` } })}
+                className="mt-3 px-4 py-2 rounded-lg border border-primary-600 text-primary-600 hover:bg-primary-50"
+              >
+                Login
+              </button>
+            </div>
+          ) : !canReview ? (
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm">
+              You can write a review after your order for this product is delivered.
+            </div>
+          ) : (
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Rating</label>
+                <div className="flex items-center gap-1">
+                  {[1,2,3,4,5].map((s)=> (
+                    <button key={s} onClick={() => setRatingInput(s)}>
+                      <StarIcon className={`w-6 h-6 ${s <= ratingInput ? 'text-yellow-400' : 'text-gray-300'}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <input value={titleInput} onChange={(e)=>setTitleInput(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Comment</label>
+                <textarea value={commentInput} onChange={(e)=>setCommentInput(e.target.value)} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded" />
+              </div>
+              <button onClick={submitReview} className="w-full btn-primary">Submit Review</button>
+            </div>
+          )}
         </div>
       </div>
     </div>

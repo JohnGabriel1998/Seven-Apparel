@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+const { eventBus } = require("../utils/eventBus");
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -28,7 +29,11 @@ exports.getProducts = async (req, res) => {
     if (brand) query.brand = brand;
     if (color) query["colors.name"] = color;
     if (size) query.sizes = size;
-    if (tags) query.tags = { $in: tags.split(",") };
+    if (tags) {
+      // Handle both single tag and comma-separated tags
+      const tagArray = typeof tags === 'string' ? tags.split(",").map(t => t.trim()) : [tags];
+      query.tags = { $in: tagArray };
+    }
 
     if (minPrice || maxPrice) {
       query.price = {};
@@ -152,6 +157,11 @@ exports.updateProduct = async (req, res) => {
       });
     }
 
+    // Broadcast product update event (for live refresh via SSE)
+    try {
+      eventBus.emit('productUpdated', { id: String(product._id), updatedAt: new Date().toISOString() });
+    } catch (_) {}
+
     res.status(200).json({
       success: true,
       data: product,
@@ -237,5 +247,25 @@ exports.getRecommendedProducts = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+// @desc    Get low/out-of-stock products
+// @route   GET /api/products/admin/low-stock
+// @access  Private/Admin
+exports.getLowStockProducts = async (req, res) => {
+  try {
+    const threshold = Number(req.query.threshold || 0); // 0 => out of stock
+    const limit = Number(req.query.limit || 20);
+    const products = await Product.find({ totalStock: { $lte: threshold } })
+      .sort({ totalStock: 1, updatedAt: -1 })
+      .limit(limit)
+      .select("name images totalStock brand");
+
+    const total = await Product.countDocuments({ totalStock: { $lte: threshold } });
+
+    res.status(200).json({ success: true, total, data: products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
