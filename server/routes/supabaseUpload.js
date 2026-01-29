@@ -12,7 +12,7 @@ const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
+    path.extname(file.originalname).toLowerCase(),
   );
   const mimetype = allowedTypes.test(file.mimetype);
 
@@ -86,12 +86,12 @@ router.post(
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        message: error.message || "Error uploading file" 
+        message: error.message || "Error uploading file",
       });
     }
-  }
+  },
 );
 
 // @desc    Upload single image (alias for product upload, used by blog)
@@ -119,12 +119,12 @@ router.post(
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        message: error.message || "Error uploading file" 
+        message: error.message || "Error uploading file",
       });
     }
-  }
+  },
 );
 
 // @desc    Upload multiple product images
@@ -142,7 +142,7 @@ router.post(
       }
 
       const uploadPromises = req.files.map((file) =>
-        uploadToSupabase(file, "images", "products")
+        uploadToSupabase(file, "images", "products"),
       );
       const results = await Promise.all(uploadPromises);
 
@@ -157,45 +157,40 @@ router.post(
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        message: error.message || "Error uploading files" 
+        message: error.message || "Error uploading files",
       });
     }
-  }
+  },
 );
 
 // @desc    Upload profile image
 // @route   POST /api/upload/profile
 // @access  Private
-router.post(
-  "/profile",
-  protect,
-  upload.single("avatar"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
-      const result = await uploadToSupabase(req.file, "images", "profiles");
-
-      res.status(200).json({
-        success: true,
-        message: "Profile image uploaded successfully",
-        filePath: result.url,
-        imageUrl: result.url,
-        filename: result.filename,
-      });
-    } catch (error) {
-      console.error("Upload error:", error);
-      res.status(500).json({ 
-        success: false,
-        message: error.message || "Error uploading file" 
-      });
+router.post("/profile", protect, upload.single("avatar"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
     }
+
+    const result = await uploadToSupabase(req.file, "images", "profiles");
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image uploaded successfully",
+      filePath: result.url,
+      imageUrl: result.url,
+      filename: result.filename,
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error uploading file",
+    });
   }
-);
+});
 
 // @desc    Delete a product image
 // @route   DELETE /api/upload/product/:filename
@@ -203,7 +198,7 @@ router.post(
 router.delete("/product/:filename", protect, adminOnly, async (req, res) => {
   try {
     const { filename } = req.params;
-    
+
     // Extract path from URL if full URL provided
     let filePath = filename;
     if (filename.includes("supabase.co")) {
@@ -231,9 +226,9 @@ router.delete("/product/:filename", protect, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error("Delete error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Error deleting file" 
+      message: "Error deleting file",
     });
   }
 });

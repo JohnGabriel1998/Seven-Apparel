@@ -3,6 +3,72 @@ const router = express.Router();
 const { supabaseAdmin } = require("../config/supabase");
 const { protect, adminOnly } = require("../middleware/supabaseAuth");
 
+// @desc    Get dashboard data (admin)
+// @route   GET /api/analytics/dashboard
+// @access  Private/Admin
+router.get("/dashboard", protect, adminOnly, async (req, res) => {
+  try {
+    // Get counts
+    const [
+      { count: totalProducts },
+      { count: totalUsers },
+      { count: totalOrders },
+      { data: revenueData },
+      { data: recentOrders },
+      { data: recentUsers }
+    ] = await Promise.all([
+      supabaseAdmin.from("products").select("*", { count: "exact", head: true }).eq("is_active", true),
+      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("orders").select("total").eq("status", "delivered"),
+      supabaseAdmin.from("orders").select("*, profiles:user_id (id, name, email)").order("created_at", { ascending: false }).limit(5),
+      supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }).limit(5)
+    ]);
+
+    const totalRevenue = revenueData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          totalProducts: totalProducts || 0,
+          totalUsers: totalUsers || 0,
+          totalOrders: totalOrders || 0,
+          totalRevenue: totalRevenue,
+        },
+        recentOrders: (recentOrders || []).map(order => ({
+          _id: order.id,
+          id: order.id,
+          orderNumber: order.order_number,
+          total: order.total,
+          status: order.status,
+          createdAt: order.created_at,
+          user: order.profiles ? {
+            _id: order.profiles.id,
+            name: order.profiles.name || 'Unknown',
+            email: order.profiles.email,
+          } : null,
+        })),
+        recentUsers: (recentUsers || []).map(user => ({
+          _id: user.id,
+          id: user.id,
+          name: user.name || user.email,
+          email: user.email,
+          role: user.role,
+          createdAt: user.created_at,
+          avatar: user.avatar,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("Get dashboard error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard data",
+    });
+  }
+});
+
 // @desc    Get analytics summary (admin)
 // @route   GET /api/analytics/summary
 // @access  Private/Admin

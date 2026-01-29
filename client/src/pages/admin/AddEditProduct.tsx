@@ -73,7 +73,7 @@ const AddEditProduct = () => {
 
       // Normalize images: extract URLs
       const normalizedImages = (productData.images || []).map((img: any) =>
-        typeof img === "string" ? img : img.url || img
+        typeof img === "string" ? img : img.url || img,
       );
 
       setFormData({
@@ -613,9 +613,17 @@ const AddEditProduct = () => {
 
           {/* Quick Tag Buttons */}
           <div className="mb-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Quick add:</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Quick add:
+            </p>
             <div className="flex flex-wrap gap-2">
-              {["new-arrival", "sale", "limited-edition", "bestseller", "trending"].map((tag) => (
+              {[
+                "new-arrival",
+                "sale",
+                "limited-edition",
+                "bestseller",
+                "trending",
+              ].map((tag) => (
                 <button
                   key={tag}
                   type="button"
