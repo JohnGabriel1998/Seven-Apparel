@@ -69,6 +69,7 @@ app.use("/api/cart", require("./routes/supabaseCart"));
 app.use("/api/coupons", require("./routes/supabaseCoupons"));
 app.use("/api/blog", require("./routes/supabaseBlog"));
 app.use("/api/analytics", require("./routes/supabaseAnalytics"));
+app.use("/api/upload", require("./routes/supabaseUpload"));
 
 // Keep these original routes (they don't need database changes)
 app.use("/api/support", require("./routes/support"));
