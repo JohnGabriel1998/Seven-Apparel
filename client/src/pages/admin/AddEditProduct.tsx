@@ -138,8 +138,8 @@ const AddEditProduct = () => {
           },
         });
 
-        // Store the full URL (backend + file path)
-        const imageUrl = `http://localhost:5000${data.filePath}`;
+        // Use the full URL returned from Supabase Storage, or construct from filePath
+        const imageUrl = data.imageUrl || data.filePath;
         uploadedImages.push(imageUrl);
       }
 
