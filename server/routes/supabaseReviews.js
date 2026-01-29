@@ -1,7 +1,103 @@
 const express = require("express");
 const router = express.Router();
 const { supabaseAdmin } = require("../config/supabase");
-const { protect, optionalAuth } = require("../middleware/supabaseAuth");
+const { protect, optionalAuth, adminOnly } = require("../middleware/supabaseAuth");
+
+// @desc    Get review stats (admin)
+// @route   GET /api/reviews/admin/stats
+// @access  Private/Admin
+router.get("/admin/stats", protect, adminOnly, async (req, res) => {
+  try {
+    const [
+      { count: totalReviews },
+      { count: pendingReviews },
+      { count: approvedReviews },
+      { data: ratingData }
+    ] = await Promise.all([
+      supabaseAdmin.from("reviews").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("reviews").select("*", { count: "exact", head: true }).eq("is_approved", false),
+      supabaseAdmin.from("reviews").select("*", { count: "exact", head: true }).eq("is_approved", true),
+      supabaseAdmin.from("reviews").select("rating")
+    ]);
+
+    const averageRating = ratingData?.length 
+      ? ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length 
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalReviews: totalReviews || 0,
+        pendingReviews: pendingReviews || 0,
+        approvedReviews: approvedReviews || 0,
+        averageRating: Math.round(averageRating * 10) / 10,
+      },
+    });
+  } catch (error) {
+    console.error("Get review stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching review stats",
+    });
+  }
+});
+
+// @desc    Get recent reviews (admin)
+// @route   GET /api/reviews/admin/recent
+// @access  Private/Admin
+router.get("/admin/recent", protect, adminOnly, async (req, res) => {
+  try {
+    const { limit = 6 } = req.query;
+
+    const { data: reviews, error } = await supabaseAdmin
+      .from("reviews")
+      .select(`
+        *,
+        profiles:user_id (id, name, avatar),
+        products:product_id (id, name, images)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(parseInt(limit));
+
+    if (error) throw error;
+
+    const transformedReviews = (reviews || []).map((review) => ({
+      _id: review.id,
+      id: review.id,
+      user: review.profiles
+        ? {
+            _id: review.profiles.id,
+            name: review.profiles.name || "Anonymous",
+            avatar: review.profiles.avatar,
+          }
+        : { name: "Anonymous" },
+      product: review.products
+        ? {
+            _id: review.products.id,
+            name: review.products.name,
+            images: review.products.images || [],
+          }
+        : null,
+      rating: review.rating,
+      title: review.title,
+      comment: review.comment,
+      isApproved: review.is_approved,
+      createdAt: review.created_at,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: transformedReviews,
+      reviews: transformedReviews,
+    });
+  } catch (error) {
+    console.error("Get recent reviews error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching recent reviews",
+    });
+  }
+});
 
 // @desc    Get reviews for a product
 // @route   GET /api/reviews/product/:productId

@@ -87,6 +87,52 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
+// @desc    Get order stats (admin)
+// @route   GET /api/orders/admin/stats
+// @access  Private/Admin
+router.get("/admin/stats", protect, adminOnly, async (req, res) => {
+  try {
+    const [
+      { count: totalOrders },
+      { count: pendingOrders },
+      { count: processingOrders },
+      { count: shippedOrders },
+      { count: deliveredOrders },
+      { count: cancelledOrders },
+      { data: revenueData }
+    ] = await Promise.all([
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "processing"),
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "shipped"),
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "delivered"),
+      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "cancelled"),
+      supabaseAdmin.from("orders").select("total").eq("status", "delivered")
+    ]);
+
+    const totalRevenue = revenueData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalOrders: totalOrders || 0,
+        pendingOrders: pendingOrders || 0,
+        processingOrders: processingOrders || 0,
+        shippedOrders: shippedOrders || 0,
+        deliveredOrders: deliveredOrders || 0,
+        cancelledOrders: cancelledOrders || 0,
+        totalRevenue,
+      },
+    });
+  } catch (error) {
+    console.error("Get order stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching order stats",
+    });
+  }
+});
+
 // @desc    Get all orders (admin)
 // @route   GET /api/orders/admin/all
 // @access  Private/Admin

@@ -47,9 +47,10 @@ export default function AdminUsers() {
     try {
       setLoading(true);
       const response = await api.get("/users/admin/all");
-      setUsers(response.data);
+      setUsers(response.data.data || response.data.users || []);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to fetch users");
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ export default function AdminUsers() {
   const fetchUserStats = async () => {
     try {
       const response = await api.get("/users/admin/stats");
-      setStats(response.data);
+      setStats(response.data.data || response.data);
     } catch (error) {
       console.error("Failed to fetch user stats:", error);
     }
