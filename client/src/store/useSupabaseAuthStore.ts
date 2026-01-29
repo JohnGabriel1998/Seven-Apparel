@@ -55,11 +55,9 @@ export const useSupabaseAuthStore = create<AuthState>()(
             _id: profile.id,
             id: profile.id,
             email: profile.email,
-            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-            firstName: profile.first_name,
-            lastName: profile.last_name,
+            name: profile.name || profile.email,
             phone: profile.phone,
-            avatar: profile.avatar_url,
+            avatar: profile.avatar,
             role: profile.role,
             addresses: profile.addresses || [],
             preferences: profile.preferences,
@@ -92,18 +90,12 @@ export const useSupabaseAuthStore = create<AuthState>()(
         try {
           set({ loading: true });
 
-          // Split name into first and last name
-          const nameParts = name.trim().split(' ');
-          const firstName = nameParts[0];
-          const lastName = nameParts.slice(1).join(' ') || '';
-
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
               data: {
-                first_name: firstName,
-                last_name: lastName,
+                name: name,
               },
             },
           });
@@ -117,8 +109,8 @@ export const useSupabaseAuthStore = create<AuthState>()(
           // Wait a moment for the profile trigger to create the profile
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // Get user profile
-          const { data: profile, error: profileError } = await supabase
+          // Get user profile (verify it was created)
+          const { error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
@@ -133,9 +125,7 @@ export const useSupabaseAuthStore = create<AuthState>()(
             id: data.user.id,
             email: email,
             name: name,
-            firstName: firstName,
-            lastName: lastName,
-            role: 'customer',
+            role: 'user',
             addresses: [],
           };
 
@@ -194,10 +184,9 @@ export const useSupabaseAuthStore = create<AuthState>()(
 
         try {
           const dbUpdates: any = {};
-          if (updates.firstName !== undefined) dbUpdates.first_name = updates.firstName;
-          if (updates.lastName !== undefined) dbUpdates.last_name = updates.lastName;
+          if (updates.name !== undefined) dbUpdates.name = updates.name;
           if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
-          if (updates.avatar !== undefined) dbUpdates.avatar_url = updates.avatar;
+          if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
           if (updates.addresses !== undefined) dbUpdates.addresses = updates.addresses;
           if (updates.preferences !== undefined) dbUpdates.preferences = updates.preferences;
 
@@ -212,7 +201,6 @@ export const useSupabaseAuthStore = create<AuthState>()(
             user: {
               ...currentUser,
               ...updates,
-              name: `${updates.firstName || currentUser.firstName || ''} ${updates.lastName || currentUser.lastName || ''}`.trim(),
             },
           });
 
@@ -256,11 +244,9 @@ export const useSupabaseAuthStore = create<AuthState>()(
             _id: profile.id,
             id: profile.id,
             email: profile.email,
-            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-            firstName: profile.first_name,
-            lastName: profile.last_name,
+            name: profile.name || profile.email,
             phone: profile.phone,
-            avatar: profile.avatar_url,
+            avatar: profile.avatar,
             role: profile.role,
             addresses: profile.addresses || [],
             preferences: profile.preferences,

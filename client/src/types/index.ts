@@ -1,13 +1,18 @@
 export interface User {
+  _id?: string;
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  role: 'user' | 'admin' | 'customer';
   isActive?: boolean;
   avatar?: string;
   addresses?: Address[];
   wishlist?: string[];
   stylePreferences?: StylePreferences;
+  preferences?: any;
 }
 
 export interface Address {

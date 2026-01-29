@@ -69,12 +69,24 @@ router.get("/admin/stats", protect, adminOnly, async (req, res) => {
       { count: totalUsers },
       { count: activeUsers },
       { count: adminUsers },
-      { data: recentUsers }
+      { data: recentUsers },
     ] = await Promise.all([
-      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }).eq("is_active", true),
-      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin"),
-      supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }).limit(5)
+      supabaseAdmin
+        .from("profiles")
+        .select("*", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true),
+      supabaseAdmin
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "admin"),
+      supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
 
     res.status(200).json({
@@ -83,7 +95,7 @@ router.get("/admin/stats", protect, adminOnly, async (req, res) => {
         totalUsers: totalUsers || 0,
         activeUsers: activeUsers || 0,
         adminUsers: adminUsers || 0,
-        recentUsers: (recentUsers || []).map(u => ({
+        recentUsers: (recentUsers || []).map((u) => ({
           _id: u.id,
           id: u.id,
           name: u.name || u.email,
@@ -121,7 +133,7 @@ router.put("/admin/:userId/status", protect, adminOnly, async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+      message: `User ${isActive ? "activated" : "deactivated"} successfully`,
       data: {
         _id: user.id,
         id: user.id,
@@ -145,7 +157,7 @@ router.put("/admin/:userId/role", protect, adminOnly, async (req, res) => {
     const { userId } = req.params;
     const { role } = req.body;
 
-    if (!['user', 'admin'].includes(role)) {
+    if (!["user", "admin"].includes(role)) {
       return res.status(400).json({
         success: false,
         message: "Invalid role. Must be 'user' or 'admin'",

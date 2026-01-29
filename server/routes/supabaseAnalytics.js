@@ -15,17 +15,31 @@ router.get("/dashboard", protect, adminOnly, async (req, res) => {
       { count: totalOrders },
       { data: revenueData },
       { data: recentOrders },
-      { data: recentUsers }
+      { data: recentUsers },
     ] = await Promise.all([
-      supabaseAdmin.from("products").select("*", { count: "exact", head: true }).eq("is_active", true),
-      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true),
+      supabaseAdmin
+        .from("profiles")
+        .select("*", { count: "exact", head: true }),
       supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
       supabaseAdmin.from("orders").select("total").eq("status", "delivered"),
-      supabaseAdmin.from("orders").select("*, profiles:user_id (id, name, email)").order("created_at", { ascending: false }).limit(5),
-      supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }).limit(5)
+      supabaseAdmin
+        .from("orders")
+        .select("*, profiles:user_id (id, name, email)")
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
 
-    const totalRevenue = revenueData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+    const totalRevenue =
+      revenueData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
 
     res.status(200).json({
       success: true,
@@ -36,20 +50,22 @@ router.get("/dashboard", protect, adminOnly, async (req, res) => {
           totalOrders: totalOrders || 0,
           totalRevenue: totalRevenue,
         },
-        recentOrders: (recentOrders || []).map(order => ({
+        recentOrders: (recentOrders || []).map((order) => ({
           _id: order.id,
           id: order.id,
           orderNumber: order.order_number,
           total: order.total,
           status: order.status,
           createdAt: order.created_at,
-          user: order.profiles ? {
-            _id: order.profiles.id,
-            name: order.profiles.name || 'Unknown',
-            email: order.profiles.email,
-          } : null,
+          user: order.profiles
+            ? {
+                _id: order.profiles.id,
+                name: order.profiles.name || "Unknown",
+                email: order.profiles.email,
+              }
+            : null,
         })),
-        recentUsers: (recentUsers || []).map(user => ({
+        recentUsers: (recentUsers || []).map((user) => ({
           _id: user.id,
           id: user.id,
           name: user.name || user.email,
