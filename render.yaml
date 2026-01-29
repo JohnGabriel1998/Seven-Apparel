@@ -1,0 +1,28 @@
+# Render Configuration File
+# This file helps configure your Render deployment
+# You can use this OR configure manually in Render dashboard
+
+services:
+  - type: web
+    name: seven-apparel-backend
+    env: node
+    region: oregon  # Change to your preferred region
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free  # Change to 'starter' or 'standard' for production
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Add these in Render dashboard (don't commit secrets here):
+      # - key: MONGODB_URI
+      #   value: your_mongodb_connection_string
+      # - key: CLIENT_URL
+      #   value: https://your-frontend.vercel.app
+      # - key: JWT_SECRET
+      #   value: your_jwt_secret
+      # - key: JWT_EXPIRE
+      #   value: 7d
+
