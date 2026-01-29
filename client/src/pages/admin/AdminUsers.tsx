@@ -98,7 +98,7 @@ export default function AdminUsers() {
   const deleteUser = async (userId: string) => {
     if (
       !window.confirm(
-        "Are you sure you want to delete this user? This action cannot be undone."
+        "Are you sure you want to delete this user? This action cannot be undone.",
       )
     ) {
       return;
@@ -122,7 +122,8 @@ export default function AdminUsers() {
         return avatar;
       }
       // If it's a relative path, prepend the server base URL (without /api)
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const baseUrl = apiUrl.replace("/api", "");
       return `${baseUrl}${avatar}`;
     }
@@ -270,8 +271,10 @@ export default function AdminUsers() {
                                 target.style.display = "none";
                                 const parent = target.parentElement;
                                 if (parent) {
-                                  const fallback = document.createElement("div");
-                                  fallback.className = "h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold";
+                                  const fallback =
+                                    document.createElement("div");
+                                  fallback.className =
+                                    "h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold";
                                   fallback.textContent = getInitials(user.name);
                                   parent.appendChild(fallback);
                                 }
@@ -383,8 +386,11 @@ export default function AdminUsers() {
                           const parent = target.parentElement;
                           if (parent) {
                             const fallback = document.createElement("div");
-                            fallback.className = "h-full w-full rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xl font-semibold";
-                            fallback.textContent = getInitials(selectedUser.name);
+                            fallback.className =
+                              "h-full w-full rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xl font-semibold";
+                            fallback.textContent = getInitials(
+                              selectedUser.name,
+                            );
                             parent.appendChild(fallback);
                           }
                         }}
@@ -469,7 +475,7 @@ export default function AdminUsers() {
                       onChange={(e) =>
                         updateUserRole(
                           selectedUser._id,
-                          e.target.value as "user" | "admin"
+                          e.target.value as "user" | "admin",
                         )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
@@ -484,7 +490,7 @@ export default function AdminUsers() {
                       onClick={() =>
                         toggleUserStatus(
                           selectedUser._id,
-                          selectedUser.isActive
+                          selectedUser.isActive,
                         )
                       }
                       className={`flex-1 px-4 py-2 rounded-lg font-semibold ${

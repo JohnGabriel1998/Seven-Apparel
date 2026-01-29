@@ -33,7 +33,15 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const { data } = await api.get("/analytics/dashboard");
-      setStats(data);
+      const dashboardData = data.data || data;
+      setStats({
+        totalOrders: dashboardData.stats?.totalOrders || dashboardData.totalOrders || 0,
+        totalRevenue: dashboardData.stats?.totalRevenue || dashboardData.totalRevenue || 0,
+        totalProducts: dashboardData.stats?.totalProducts || dashboardData.totalProducts || 0,
+        totalUsers: dashboardData.stats?.totalUsers || dashboardData.totalUsers || 0,
+        recentOrders: dashboardData.recentOrders || [],
+        lowStockProducts: dashboardData.lowStockProducts || [],
+      });
     } catch (error: any) {
       toast.error("Failed to load dashboard data");
     } finally {

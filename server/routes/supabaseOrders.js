@@ -99,18 +99,34 @@ router.get("/admin/stats", protect, adminOnly, async (req, res) => {
       { count: shippedOrders },
       { count: deliveredOrders },
       { count: cancelledOrders },
-      { data: revenueData }
+      { data: revenueData },
     ] = await Promise.all([
       supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "processing"),
-      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "shipped"),
-      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "delivered"),
-      supabaseAdmin.from("orders").select("*", { count: "exact", head: true }).eq("status", "cancelled"),
-      supabaseAdmin.from("orders").select("total").eq("status", "delivered")
+      supabaseAdmin
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabaseAdmin
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "processing"),
+      supabaseAdmin
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "shipped"),
+      supabaseAdmin
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "delivered"),
+      supabaseAdmin
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "cancelled"),
+      supabaseAdmin.from("orders").select("total").eq("status", "delivered"),
     ]);
 
-    const totalRevenue = revenueData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+    const totalRevenue =
+      revenueData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
 
     res.status(200).json({
       success: true,

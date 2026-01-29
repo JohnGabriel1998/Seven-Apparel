@@ -89,9 +89,10 @@ export default function AdminOrders() {
     try {
       setLoading(true);
       const response = await api.get("/orders/admin/all");
-      setOrders(response.data);
+      setOrders(response.data.data || response.data.orders || []);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to fetch orders");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ export default function AdminOrders() {
   const fetchOrderStats = async () => {
     try {
       const response = await api.get("/orders/admin/stats");
-      setStats(response.data);
+      setStats(response.data.data || response.data);
     } catch (error) {
       console.error("Failed to fetch order stats:", error);
     }

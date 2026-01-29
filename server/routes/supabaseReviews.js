@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { supabaseAdmin } = require("../config/supabase");
-const { protect, optionalAuth, adminOnly } = require("../middleware/supabaseAuth");
+const {
+  protect,
+  optionalAuth,
+  adminOnly,
+} = require("../middleware/supabaseAuth");
 
 // @desc    Get review stats (admin)
 // @route   GET /api/reviews/admin/stats
@@ -12,16 +16,22 @@ router.get("/admin/stats", protect, adminOnly, async (req, res) => {
       { count: totalReviews },
       { count: pendingReviews },
       { count: approvedReviews },
-      { data: ratingData }
+      { data: ratingData },
     ] = await Promise.all([
       supabaseAdmin.from("reviews").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("reviews").select("*", { count: "exact", head: true }).eq("is_approved", false),
-      supabaseAdmin.from("reviews").select("*", { count: "exact", head: true }).eq("is_approved", true),
-      supabaseAdmin.from("reviews").select("rating")
+      supabaseAdmin
+        .from("reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("is_approved", false),
+      supabaseAdmin
+        .from("reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("is_approved", true),
+      supabaseAdmin.from("reviews").select("rating"),
     ]);
 
-    const averageRating = ratingData?.length 
-      ? ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length 
+    const averageRating = ratingData?.length
+      ? ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length
       : 0;
 
     res.status(200).json({
@@ -51,11 +61,13 @@ router.get("/admin/recent", protect, adminOnly, async (req, res) => {
 
     const { data: reviews, error } = await supabaseAdmin
       .from("reviews")
-      .select(`
+      .select(
+        `
         *,
         profiles:user_id (id, name, avatar),
         products:product_id (id, name, images)
-      `)
+      `,
+      )
       .order("created_at", { ascending: false })
       .limit(parseInt(limit));
 

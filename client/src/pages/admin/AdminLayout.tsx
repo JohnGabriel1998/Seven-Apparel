@@ -129,7 +129,7 @@ const AdminLayout = () => {
       try {
         const res = await api.get("/orders/admin/all");
         if (isCancelled) return;
-        const list = Array.isArray(res.data) ? res.data : [];
+        const list = res.data?.data || res.data?.orders || (Array.isArray(res.data) ? res.data : []);
         list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         const recent = list.slice(0, 6);
         setRecentOrders(recent);
@@ -153,7 +153,8 @@ const AdminLayout = () => {
       try {
         const res = await api.get("/reviews/admin/stats");
         if (isCancelled) return;
-        const total = Number(res?.data?.total || 0);
+        const statsData = res?.data?.data || res?.data || {};
+        const total = Number(statsData?.totalReviews || statsData?.total || 0);
         setTotalReviews(total);
         const unseen = Math.max(0, total - getLastSeenReviews());
         setUnseenReviews(unseen);
