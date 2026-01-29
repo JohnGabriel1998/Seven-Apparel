@@ -2,46 +2,11 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 const { protect, adminOnly } = require("../middleware/supabaseAuth");
+const { supabaseAdmin } = require("../config/supabase");
 
-// Ensure uploads directories exist
-const uploadsDir = path.join(__dirname, "../uploads/products");
-const profileUploadsDir = path.join(__dirname, "../uploads/profiles");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-if (!fs.existsSync(profileUploadsDir)) {
-  fs.mkdirSync(profileUploadsDir, { recursive: true });
-}
-
-// Configure multer for product file storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
-    );
-  },
-});
-
-// Configure multer for profile image storage
-const profileStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, profileUploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      "profile-" + uniqueSuffix + path.extname(file.originalname)
-    );
-  },
-});
+// Configure multer for memory storage (we'll upload to Supabase)
+const storage = multer.memoryStorage();
 
 // File filter to only accept images
 const fileFilter = (req, file, cb) => {
@@ -58,7 +23,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer for products
+// Configure multer
 const upload = multer({
   storage: storage,
   limits: {
@@ -67,14 +32,34 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
-// Configure multer for profile images
-const profileUpload = multer({
-  storage: profileStorage,
-  limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB max file size for profile images
-  },
-  fileFilter: fileFilter,
-});
+// Helper function to upload to Supabase Storage
+async function uploadToSupabase(file, bucket, folder) {
+  const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+  const ext = path.extname(file.originalname);
+  const filename = `${folder}/${uniqueSuffix}${ext}`;
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(bucket)
+    .upload(filename, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Supabase upload error:", error);
+    throw error;
+  }
+
+  // Get public URL
+  const { data: urlData } = supabaseAdmin.storage
+    .from(bucket)
+    .getPublicUrl(filename);
+
+  return {
+    filename,
+    url: urlData.publicUrl,
+  };
+}
 
 // @desc    Upload single product image
 // @route   POST /api/upload/product
@@ -84,24 +69,27 @@ router.post(
   protect,
   adminOnly,
   upload.single("image"),
-  (req, res) => {
+  async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Return the file path that can be accessed via the server
-      const filePath = `/uploads/products/${req.file.filename}`;
+      const result = await uploadToSupabase(req.file, "images", "products");
 
       res.status(200).json({
         success: true,
         message: "Image uploaded successfully",
-        filePath: filePath,
-        filename: req.file.filename,
+        filePath: result.url,
+        imageUrl: result.url,
+        filename: result.filename,
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ message: "Error uploading file" });
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Error uploading file" 
+      });
     }
   }
 );
@@ -114,26 +102,27 @@ router.post(
   protect,
   adminOnly,
   upload.single("image"),
-  (req, res) => {
+  async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Get the base URL from the request or env
-      const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get("host")}`;
-      const imageUrl = `${baseUrl}/uploads/products/${req.file.filename}`;
+      const result = await uploadToSupabase(req.file, "images", "products");
 
       res.status(200).json({
         success: true,
         message: "Image uploaded successfully",
-        imageUrl: imageUrl,
-        filePath: `/uploads/products/${req.file.filename}`,
-        filename: req.file.filename,
+        imageUrl: result.url,
+        filePath: result.url,
+        filename: result.filename,
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ message: "Error uploading file" });
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Error uploading file" 
+      });
     }
   }
 );
@@ -146,25 +135,32 @@ router.post(
   protect,
   adminOnly,
   upload.array("images", 10),
-  (req, res) => {
+  async (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ message: "No files uploaded" });
       }
 
-      const filePaths = req.files.map(
-        (file) => `/uploads/products/${file.filename}`
+      const uploadPromises = req.files.map((file) =>
+        uploadToSupabase(file, "images", "products")
       );
+      const results = await Promise.all(uploadPromises);
+
+      const filePaths = results.map((r) => r.url);
 
       res.status(200).json({
         success: true,
         message: "Images uploaded successfully",
         filePaths: filePaths,
+        imageUrls: filePaths,
         count: req.files.length,
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ message: "Error uploading files" });
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Error uploading files" 
+      });
     }
   }
 );
@@ -175,24 +171,28 @@ router.post(
 router.post(
   "/profile",
   protect,
-  profileUpload.single("avatar"),
-  (req, res) => {
+  upload.single("avatar"),
+  async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const filePath = `/uploads/profiles/${req.file.filename}`;
+      const result = await uploadToSupabase(req.file, "images", "profiles");
 
       res.status(200).json({
         success: true,
         message: "Profile image uploaded successfully",
-        filePath: filePath,
-        filename: req.file.filename,
+        filePath: result.url,
+        imageUrl: result.url,
+        filename: result.filename,
       });
     } catch (error) {
       console.error("Upload error:", error);
-      res.status(500).json({ message: "Error uploading file" });
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Error uploading file" 
+      });
     }
   }
 );
@@ -200,26 +200,41 @@ router.post(
 // @desc    Delete a product image
 // @route   DELETE /api/upload/product/:filename
 // @access  Private/Admin
-router.delete("/product/:filename", protect, adminOnly, (req, res) => {
+router.delete("/product/:filename", protect, adminOnly, async (req, res) => {
   try {
     const { filename } = req.params;
-    const filePath = path.join(uploadsDir, filename);
+    
+    // Extract path from URL if full URL provided
+    let filePath = filename;
+    if (filename.includes("supabase.co")) {
+      const parts = filename.split("/images/");
+      if (parts[1]) {
+        filePath = parts[1];
+      }
+    }
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      res.status(200).json({
-        success: true,
-        message: "Image deleted successfully",
-      });
-    } else {
-      res.status(404).json({
+    const { error } = await supabaseAdmin.storage
+      .from("images")
+      .remove([filePath]);
+
+    if (error) {
+      console.error("Delete error:", error);
+      return res.status(500).json({
         success: false,
-        message: "Image not found",
+        message: "Error deleting image",
       });
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Image deleted successfully",
+    });
   } catch (error) {
     console.error("Delete error:", error);
-    res.status(500).json({ message: "Error deleting file" });
+    res.status(500).json({ 
+      success: false,
+      message: "Error deleting file" 
+    });
   }
 });
 
@@ -229,7 +244,7 @@ router.use((error, req, res, next) => {
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
-        message: "File too large. Maximum size is 5MB for products, 2MB for profiles.",
+        message: "File too large. Maximum size is 5MB.",
       });
     }
     return res.status(400).json({
